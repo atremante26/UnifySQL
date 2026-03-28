@@ -9,6 +9,16 @@ license = {text = "MIT License"}
 readme = "README.md"
 requires-python = ">=3.11,<4.0.0"
 dependencies = [
+    "pydantic (>=2.12.5,<3.0.0)",
+    "pydantic-settings (>=2.13.1,<3.0.0)",
+    "structlog (>=25.5.0,<26.0.0)",
+    "langchain (>=1.2.13,<2.0.0)",
+    "langchain-openai (>=1.1.12,<2.0.0)",
+    "langchain-anthropic (>=1.4.0,<2.0.0)",
+    "sqlglot (>=30.1.0,<31.0.0)",
+    "sqlalchemy (>=2.0.48,<3.0.0)",
+    "flask (>=3.1.3,<4.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)"
 ]
 
 
@@ -24,3 +34,21 @@ dev = [
     "ruff (>=0.15.8,<0.16.0)",
     "mypy (>=1.19.1,<2.0.0)"
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
