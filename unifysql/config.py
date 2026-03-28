@@ -1,5 +1,7 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     # Database
@@ -8,7 +10,7 @@ class Settings(BaseSettings):
     bq_project: Optional[str] = None
 
     # LLM
-    openai_api_key: str 
+    openai_api_key: str
     anthropic_api_key: Optional[str]
     default_model: str = "gpt-4o"
     fallback_model: str = "claude-sonnet-4-6"
@@ -32,5 +34,6 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
+
 # Singleton
-settings = Settings()
+settings = Settings() # type: ignore[call-arg]
