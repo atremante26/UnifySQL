@@ -44,3 +44,40 @@ Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constr
 ```
    poetry run python -c "from sentence_transformers import SentenceTransformer; print('ok')"
 ```
+
+## Development
+```
+make install     # install dependencies
+make test        # run test suite
+make lint        # run ruff linter
+make format      # run black formatter
+make typecheck   # run mypy type checker
+```
+
+## Architecture
+
+UnifySQL is split into two paths:
+
+**Offline (once per schema)** — schema ingestion → LLM annotation → semantic layer construction and storage
+
+**Online (every query)** — NL question → context builder → LLM translation → SQLGlot compilation → validation → DB execution → response
+
+## Status
+
+- Phase 0 complete — project skeleton, dependencies, and environment configured
+- Phase 1 complete — Pydantic data models for all pipeline stages
+- Phase 2 complete — observability scaffold (structured logging, span timing, metrics, PII scrubber)
+
+## Project Structure
+```
+unifysql/
+├── ingestion/        # Offline path — schema extraction and enrichment
+├── semantic/         # Semantic layer construction and storage
+├── translation/      # Online path — NL to SQL translation
+├── execution/        # DB execution and result handling
+├── feedback/         # Correction loop and retrieval
+├── observability/    # Logging, tracing, metrics, PII scrubbing
+├── eval/             # Evaluation harness and golden set
+├── api/              # Flask API and middleware
+└── config.py         # Pydantic settings
+```
