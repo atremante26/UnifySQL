@@ -1,0 +1,26 @@
+[project]
+name = "unifysql"
+version = "0.1.0"
+description = "Model-agnostic Text-to-SQL pipeline with an automatically constructed and maintained semantic layer."
+authors = [
+    {name = "atremante26",email = "atremante26@amherst.edu"}
+]
+license = {text = "MIT License"}
+readme = "README.md"
+requires-python = ">=3.11,<4.0.0"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "pytest-asyncio (>=1.3.0,<2.0.0)",
+    "black (>=26.3.1,<27.0.0)",
+    "ruff (>=0.15.8,<0.16.0)",
+    "mypy (>=1.19.1,<2.0.0)"
+]
