@@ -14,6 +14,11 @@ class SchemaExtractor():
         self.dialect = dialect
 
     def extract(self) -> List[TableSchema]:
+        """
+        Connects to the database via the adaptor, extracts DDL and
+        column metadata for all tables, computes `SHA-256` fingerprint
+        of the combined DDL, and returns a `List[TableSchema]`.
+        """
         # Connect to database
         try:
             self.adaptor.connect()
@@ -42,7 +47,7 @@ class SchemaExtractor():
             final_tables.append(TableSchema(
                 name=table_name,
                 columns=columns,
-                row_count=0, # default row_count
+                row_count=0, # default value
                 schema_hash=schema_hash,
                 dialect=self.dialect,
                 raw_ddl=ddl_map[table_name]
