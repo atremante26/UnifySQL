@@ -76,4 +76,4 @@ class MetadataEnricher():
         Returns `True` if `column_name` ends with '_id', indicating a likely
         foreign key relationship by naming convention.
         """
-        return column_name.endswith("_id")
+        return column_name.lower().endswith("_id")
