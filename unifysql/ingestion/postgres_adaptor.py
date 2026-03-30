@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import MetaData, create_engine, inspect, text
+from sqlalchemy import MetaData, create_engine, inspect
 from sqlalchemy.schema import CreateTable
 
 from unifysql.ingestion.adaptor import BaseAdaptor
@@ -21,6 +21,7 @@ class PostgresAdaptor(BaseAdaptor):
         self.insp = inspect(self.engine)
 
     def connect(self) -> None:
+        """Connects to a Postgres database with `connection_string` using SQLAlchemy."""
         try:
             self.engine.connect()
             logger.info("postgres_connection_succeeded.")
@@ -29,9 +30,11 @@ class PostgresAdaptor(BaseAdaptor):
 
 
     def get_tables(self) -> List[str]:
+        """Returns a list of tables in a Postgres database."""
         return self.insp.get_table_names()
 
     def get_ddl(self, table_name: str) -> str:
+        """Returns the `CREATE TABLE DDL` statement for a specified table."""
         # Get Postgres metadata
         meta = MetaData()
 
@@ -44,6 +47,10 @@ class PostgresAdaptor(BaseAdaptor):
         return str(CreateTable(table).compile(self.engine))
 
     def get_columns(self, table_name: str) -> List[ColumnSchema]:
+        """
+        Returns structural column metadata for a specified table,
+        including name, type, nullability and PL/FK status.
+        """
         # Get all columns
         columns = self.insp.get_columns(table_name)
 
@@ -56,33 +63,15 @@ class PostgresAdaptor(BaseAdaptor):
         fk_columns = [fk["constrained_columns"][0] for fk in fk_info]
 
         column_schemas = []
-        with self.engine.connect() as connection:
-            for c in columns:
-                # Sample values
-                result = connection.execute(
-                    text(f"SELECT {c['name']} FROM {table_name} LIMIT 10")
-                )
-                sample_values = [str(row[0]) for row in result.fetchall()]
-
-                # Null rate
-                null_count = connection.execute(
-                    text(f"SELECT COUNT(*) FROM {table_name} WHERE {c['name']} IS NULL")
-                ).scalar()
-                total_count = connection.execute(
-                    text(f"SELECT COUNT(*) FROM {table_name}")
-                ).scalar()
-                null_rate = (
-                    float(null_count or 0) / float(total_count) if total_count else 0.0
-                )
-
+        for c in columns:
             column_schemas.append(ColumnSchema(
                 name=c["name"],
                 type=str(c["type"]),
                 nullable=c["nullable"],
                 is_pk=True if c["name"] in pk_columns else False,
                 is_fk=True if c["name"] in fk_columns else False,
-                sample_values=sample_values,
-                null_rate=null_rate
+                sample_values=[], # default value
+                null_rate=0.0 # default value
             ))
 
         return column_schemas
