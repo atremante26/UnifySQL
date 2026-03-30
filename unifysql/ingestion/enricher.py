@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -10,7 +10,7 @@ from unifysql.semantic.models import TableSchema
 logger = get_logger()
 
 class MetadataEnricher():
-    def __init__(self, schema: List[TableSchema], engine: Engine):
+    def __init__(self, schema: List[TableSchema], engine: Optional[Engine]):
         self.schema = schema
         self.engine = engine
 
@@ -19,6 +19,9 @@ class MetadataEnricher():
         Enriches a `TableSchema` with metadata (sample values,
         null rate, row counts, foreign keys).
         """
+        if self.engine is None:
+            raise ValueError("Engine is required for enrichment.")
+    
         try:
             with self.engine.connect() as connection:
                 for i, table in enumerate(self.schema):
