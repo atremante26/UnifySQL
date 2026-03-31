@@ -69,6 +69,7 @@ class JoinSource(Enum):
 
 class JoinPath(BaseModel):
     """A join path between two columns."""
+    source_table: str
     target_table: str
     on_clause: str
     cardinality: JoinCardinality
@@ -95,6 +96,10 @@ class AnnotatorOutput(BaseModel):
     columns: List[ColumnEntry]
     filters: List[str]
     dialect_hints: List[DialectHint]
+
+class MapperOutput(BaseModel):
+    """The output of the LangChain mapper."""
+    joins: List[JoinPath]
 
 class SemanticLayer(BaseModel):
     """Data schema for semantic layer"""
