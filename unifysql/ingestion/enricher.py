@@ -21,7 +21,7 @@ class MetadataEnricher():
         """
         if self.engine is None:
             raise ValueError("Engine is required for enrichment.")
-    
+
         try:
             with self.engine.connect() as connection:
                 for i, table in enumerate(self.schema):
