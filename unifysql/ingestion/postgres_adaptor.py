@@ -49,7 +49,7 @@ class PostgresAdaptor(BaseAdaptor):
     def get_columns(self, table_name: str) -> List[ColumnSchema]:
         """
         Returns structural column metadata for a specified table,
-        including name, type, nullability and PL/FK status.
+        including name, type, nullability and PK/FK status.
         """
         # Get all columns
         columns = self.insp.get_columns(table_name)
