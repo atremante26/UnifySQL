@@ -67,11 +67,18 @@ UnifySQL is split into two paths:
 - Phase 0 complete — project skeleton, dependencies, and environment configured
 - Phase 1 complete — Pydantic data models for all pipeline stages
 - Phase 2 complete — observability scaffold (structured logging, span timing, metrics, PII scrubber)
+- Phase 3 complete — schema ingestion (Postgres, Snowflake, BigQuery adaptors, extractor, metadata enricher)
 
 ## Project Structure
 ```
 unifysql/
 ├── ingestion/        # Offline path — schema extraction and enrichment
+│   ├── adaptor.py          # BaseAdaptor abstract interface
+│   ├── postgres_adaptor.py # PostgresAdaptor implementation
+│   ├── snowflake_adaptor.py # SnowflakeAdaptor implementation
+│   ├── bigquery_adaptor.py  # BigQueryAdaptor implementation
+│   ├── extractor.py        # SchemaExtractor with SHA-256 fingerprinting
+│   └── enricher.py         # MetadataEnricher with row counts, samples, FK inference
 ├── semantic/         # Semantic layer construction and storage
 ├── translation/      # Online path — NL to SQL translation
 ├── execution/        # DB execution and result handling
