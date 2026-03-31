@@ -49,6 +49,7 @@ class ColumnRole(Enum):
 
 class ColumnEntry(BaseModel):
     """A single column entry."""
+    name: str
     description: str
     alias: List[str]
     role: ColumnRole
@@ -85,6 +86,13 @@ class TableEntry(BaseModel):
     description: str
     columns: List[ColumnEntry]
     joins: List[JoinPath]
+    filters: List[str]
+    dialect_hints: List[DialectHint]
+
+class AnnotatorOutput(BaseModel):
+    """The output of the LangChain annotator."""
+    description: str
+    columns: List[ColumnEntry]
     filters: List[str]
     dialect_hints: List[DialectHint]
 
