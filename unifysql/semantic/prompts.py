@@ -38,3 +38,43 @@ That is handled separately.
 {format_instructions}
 """
 
+def get_mapper_prompt() -> str:
+    """
+    Returns the prompt template for the LLM relationship mapper chain.
+
+    The template instructs the LLM to infer join paths across all tables
+    in the semantic layer given the full table graph. Each join must include
+    source table, target table, join clause, cardinality, confidence score,
+    and join source type.
+
+    Placeholders: `{table_graph}`, `{format_instructions}`
+    """
+    return """You are a senior data engineer inferring join relationships
+between database tables for a semantic layer.
+
+You will be given a full graph of all tables in the database, including
+their columns, roles, PK/FK flags, and descriptions.
+
+Table graph:
+{table_graph}
+
+Your task:
+- Infer all meaningful join paths between tables
+- For each join, specify:
+    - source_table: the table the join originates from
+    - target_table: the table being joined to
+    - on_clause: the SQL join condition e.g. "orders.user_id = users.id"
+    - cardinality: one_to_one, one_to_many, or many_to_many
+    - confidence: your confidence score between 0.0 and 1.0
+    - join_confidence: same as confidence for llm_inferred joins
+    - join_source: always "llm_inferred" for joins you infer here
+
+Rules:
+- Only infer joins where there is strong evidence from column names,
+  PK/FK flags, or naming conventions
+- Do not infer speculative joins with no supporting evidence
+- Prefer declared FK relationships (is_fk=True) as highest confidence
+- A column ending in _id strongly suggests a foreign key relationship
+
+{format_instructions}
+"""
