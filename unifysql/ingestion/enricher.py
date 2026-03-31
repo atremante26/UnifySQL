@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from unifysql.observability.logger import get_logger
+from unifysql.observability.scrubber import scrub_columns
 from unifysql.semantic.models import TableSchema
 
 # Instantiate logger
@@ -25,6 +26,11 @@ class MetadataEnricher():
         try:
             with self.engine.connect() as connection:
                 for i, table in enumerate(self.schema):
+                    # Row count
+                    row_count = connection.execute(
+                        text(f"SELECT COUNT(*) FROM {table.name}")
+                    ).scalar()
+
                     updated_columns = []
                     for col in table.columns:
                         # Sample values
@@ -40,12 +46,9 @@ class MetadataEnricher():
                                 f"WHERE {col.name} IS NULL"
                             )
                         ).scalar()
-                        total_count = connection.execute(
-                            text(f"SELECT COUNT(*) FROM {table.name}")
-                        ).scalar()
                         null_rate = (
-                            float(null_count or 0) / float(total_count)
-                            if total_count else 0.0
+                            float(null_count or 0) / float(row_count)
+                            if row_count else 0.0
                         )
 
                         # Update columns
@@ -55,15 +58,15 @@ class MetadataEnricher():
                             "is_fk": col.is_fk or self._infer_fk(col.name)
                         }))
 
-                    # Row count
-                        row_count = connection.execute(
-                            text(f"SELECT COUNT(*) FROM {table.name}")
-                        ).scalar()
+                    # Scrub column metadata
+                    scrubbed_columns = scrub_columns(columns=updated_columns)
+                    logger.info("enriched_columns_successfully_scrubbed",
+                                n_col=len(scrubbed_columns))
 
                     # Update TableSchema
                     self.schema[i] = self.schema[i].model_copy(update={
                         "row_count": row_count or 0,
-                        "columns": updated_columns
+                        "columns": scrubbed_columns
                     })
 
             logger.info("schema_enriched_with_metadata", n_tables=len(self.schema))
