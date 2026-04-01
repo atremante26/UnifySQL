@@ -5,7 +5,7 @@ from sqlalchemy.schema import CreateTable
 
 from unifysql.ingestion.adaptor import BaseAdaptor
 from unifysql.observability.logger import get_logger
-from unifysql.semantic.models import ColumnSchema
+from unifysql.semantic.models import ColumnSchema, FKSource
 
 # Instantiate logger
 logger = get_logger()
@@ -70,10 +70,11 @@ class SnowflakeAdaptor(BaseAdaptor):
                 name=c["name"],
                 type=str(c["type"]),
                 nullable=c["nullable"],
-                is_pk=True if c["name"] in pk_columns else False,
-                is_fk=True if c["name"] in fk_columns else False,
+                is_pk=c["name"] in pk_columns,
+                is_fk=c["name"] in fk_columns,
                 sample_values=[], # default value
-                null_rate=0.0 # default value
+                null_rate=0.0, # default value
+                fk_source=FKSource.declared if c["name"] in fk_columns else None
             ))
 
         return column_schemas
