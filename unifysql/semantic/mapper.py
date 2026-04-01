@@ -9,7 +9,15 @@ from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponenti
 from unifysql.config import settings
 from unifysql.observability.logger import get_logger
 from unifysql.observability.tracer import Span
-from unifysql.semantic.models import MapperOutput, TableEntry, TableSchema
+from unifysql.semantic.models import (
+    FKSource,
+    JoinCardinality,
+    JoinPath,
+    JoinSource,
+    MapperOutput,
+    TableEntry,
+    TableSchema,
+)
 from unifysql.semantic.prompts import get_mapper_prompt
 
 # Instantiate logger
@@ -49,14 +57,64 @@ class RelationshipMapper():
         )
         return result, token_count
 
+    def _build_deterministic_joins(
+            self,
+            tables: Dict[str, TableEntry],
+            schema_lookup: Dict[str, TableSchema]
+        ) -> Dict[str, TableEntry]:
+        """Builds join paths from declared FK constraints and inferred naming
+        patterns before the LLM call.
+        Declared joins (`fk_source=FKSource.declared`) get `confidence=1.0` and
+        `JoinSource.declared`. Inferred joins (`fk_source=FKSource.inferred`) get
+        `confidence=0.75` and `JoinSource.inferred`.
+        """
+        # Build deterministic joins using fk_source to assign confidence
+        for table_name, entry in tables.items():
+            schema = schema_lookup.get(table_name)
+            if not schema:
+                continue
+            for col in schema.columns:
+                if col.is_fk:
+                    target = col.name.replace("_id", "") + "s"
+                    if target in tables:
+                        confidence = 1.0 if col.fk_source == FKSource.declared else 0.75
+                        join_source = (
+                            JoinSource.declared
+                            if col.fk_source == FKSource.declared
+                            else JoinSource.inferred
+                        )
+                        existing = tables[table_name].joins
+                        tables[table_name] = tables[table_name].model_copy(
+                            update={"joins": existing + [JoinPath(
+                                source_table=table_name,
+                                target_table=target,
+                                on_clause=f"{table_name}.{col.name} = {target}.id",
+                                cardinality=JoinCardinality.one_to_many,
+                                confidence=confidence,
+                                join_confidence=confidence,
+                                join_source=join_source
+                            )]}
+                        )
+        return tables
+
     def map(
             self,
             tables: Dict[str, TableEntry],
             schemas: List[TableSchema]
         ) -> Dict[str, TableEntry]:
-        """Infers join relationships across all tables in a single LLM call."""
-        # Extract PK/FK info from schemas
+        """Infers join relationships across all tables in a single LLM call.
+        Builds deterministic joins first, then sends the full table graph
+        to the LLM for ambiguous relationship inference. Deduplicates LLM
+        joins against existing deterministic ones before merging.
+        """
+        # Create schema lookup dict
         schema_lookup = {s.name: s for s in schemas}
+
+        # Update tables with deterministic joins
+        tables = self._build_deterministic_joins(
+            tables=tables,
+            schema_lookup=schema_lookup
+        )
 
         # Serialize table graph
         table_context = {
@@ -122,12 +180,20 @@ class RelationshipMapper():
                 logger.error("fallback_model_failed", error=str(fallback_e))
                 raise
 
+        # Build list of deterministic joins for deduplication
+        existing_joins = {
+            (j.source_table, j.target_table)
+            for entry in tables.values()
+            for j in entry.joins
+        }
+
         # Update JoinPaths
         for join in result.joins:
             if join.source_table in tables:
-                existing = tables[join.source_table].joins
-                tables[join.source_table] = tables[join.source_table].model_copy(
-                    update={"joins": existing + [join]}
-                )
+                if (join.source_table, join.target_table) not in existing_joins:
+                    existing = tables[join.source_table].joins
+                    tables[join.source_table] = tables[join.source_table].model_copy(
+                        update={"joins": existing + [join]}
+                    )
 
         return tables
