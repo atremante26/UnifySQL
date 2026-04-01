@@ -32,19 +32,6 @@ class TableSchema(BaseModel):
     dialect: str
     raw_ddl: str
 
-class WarehouseType(Enum):
-    """Warehouse type enum."""
-    postgres = "POSTGRES"
-    snowflake = "SNOWFLAKE"
-    big_query = "BIG_QUERY"
-
-class SchemaMetadata(BaseModel):
-    """Metadata for a single schema."""
-    tables: List[TableSchema]
-    database: str
-    warehouse_type: WarehouseType
-    extracted_at: datetime
-
 # Semantic Layer Models
 class ColumnRole(Enum):
     """Column role enum."""
@@ -148,6 +135,12 @@ class ValidationResult(BaseModel):
     error_detail: Optional[str] = None
 
 # Execution and Response Models
+class WarehouseType(Enum):
+    """Warehouse type enum."""
+    postgres = "POSTGRES"
+    snowflake = "SNOWFLAKE"
+    big_query = "BIG_QUERY"
+
 class QueryResult(BaseModel):
     """The result of executing a generated SQL query."""
     query_id: UUID
