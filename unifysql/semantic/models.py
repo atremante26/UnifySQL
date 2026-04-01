@@ -7,6 +7,11 @@ from pydantic import BaseModel
 
 
 # Ingestion Models
+class FKSource(Enum):
+    """Foreign Key source enum."""
+    declared = "declared"
+    inferred = "inferred"
+
 class ColumnSchema(BaseModel):
     """A single column schema."""
     name: str
@@ -14,6 +19,7 @@ class ColumnSchema(BaseModel):
     nullable: bool
     is_pk: bool
     is_fk: bool
+    fk_source: Optional[FKSource] = None
     sample_values: List[str]
     null_rate: float
 
