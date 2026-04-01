@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 
 from unifysql.observability.logger import get_logger
 from unifysql.observability.scrubber import scrub_columns
-from unifysql.semantic.models import TableSchema
+from unifysql.semantic.models import FKSource, TableSchema
 
 # Instantiate logger
 logger = get_logger()
@@ -51,11 +51,16 @@ class MetadataEnricher():
                             if row_count else 0.0
                         )
 
+                        # Infer foreign key
+                        inferred_fk = self._infer_fk(col.name)
+
                         # Update columns
                         updated_columns.append(col.model_copy(update={
                             "sample_values": sample_values,
                             "null_rate": null_rate,
-                            "is_fk": col.is_fk or self._infer_fk(col.name)
+                            "is_fk": col.is_fk or inferred_fk,
+                            "fk_source": col.fk_source if col.is_fk else
+                                (FKSource.inferred if inferred_fk else None)
                         }))
 
                     # Scrub column metadata
