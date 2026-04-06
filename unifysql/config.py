@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     preview_default_limit: int = 100
     join_confidence_execution_threshold: float = 0.85
+    semantic_layer_dir: str = "semantic_layers/"
 
     # Observability
     log_level: str = "INFO"
