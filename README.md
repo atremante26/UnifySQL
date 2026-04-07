@@ -1,4 +1,3 @@
-```markdown
 # UnifySQL
 
 Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constructed and maintained semantic layer.
