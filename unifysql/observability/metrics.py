@@ -12,9 +12,9 @@ from unifysql.semantic.models import (
 # Instantiate logger
 logger = get_logger()
 
+
 def log_translation_result(
-        translation_result: TranslationResult,
-        validation_result: ValidationResult
+    translation_result: TranslationResult, validation_result: ValidationResult
 ) -> None:
     """Write a structured log record at the end of every translation request."""
     logger.info(
@@ -33,12 +33,12 @@ def log_translation_result(
         selection_rationale=translation_result.selection_rationale,
         validation_valid=validation_result.valid,
         validation_error_type=validation_result.error_type,
-        validation_error_detail=validation_result.error_detail
+        validation_error_detail=validation_result.error_detail,
     )
 
+
 def log_execution_result(
-        query_result: QueryResult,
-        error_detail: Optional[ErrorDetail]
+    query_result: QueryResult, error_detail: Optional[ErrorDetail]
 ) -> None:
     """Write a structured log record at the end of every execution request."""
     logger.info(
@@ -48,8 +48,9 @@ def log_execution_result(
         row_count=query_result.row_count,
         execution_ms=query_result.execution_ms,
         warehouse=query_result.warehouse.value,
-        error_detail=error_detail.model_dump() if error_detail else None
+        error_detail=error_detail.model_dump() if error_detail else None,
     )
+
 
 def log_correction_stored(correction: CorrectionRecord) -> None:
     """Write a structured log record when a new correction is saved."""
@@ -58,12 +59,12 @@ def log_correction_stored(correction: CorrectionRecord) -> None:
         correction=correction.model_dump(),
         retrieval_count=correction.retrieval_count,
         schema_hash=correction.schema_hash,
-        semantic_layer_version=correction.semantic_layer_version
+        semantic_layer_version=correction.semantic_layer_version,
     )
 
+
 def log_correction_retrieved(
-        corrections: List[CorrectionRecord],
-        similarity_scores: List[float]
+    corrections: List[CorrectionRecord], similarity_scores: List[float]
 ) -> None:
     """Write a structured log record when corrections retrieved as few-shot examples."""
     logger.info(
@@ -73,5 +74,5 @@ def log_correction_retrieved(
         retrievals=[
             {"query_id": str(c.correction.query_id), "similarity": s}
             for c, s in zip(corrections, similarity_scores)
-        ]
+        ],
     )

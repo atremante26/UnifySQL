@@ -23,14 +23,14 @@ from unifysql.semantic.prompts import get_mapper_prompt
 # Instantiate logger
 logger = get_logger()
 
-class RelationshipMapper():
+
+class RelationshipMapper:
     def __init__(self, model_name: Optional[str]):
-        self.model_name = str(model_name
-            or settings.default_model
-            or settings.fallback_model)
+        self.model_name = str(
+            model_name or settings.default_model or settings.fallback_model
+        )
         self.model = init_chat_model(
-            model=self.model_name,
-            max_tokens=settings.max_tokens_per_call
+            model=self.model_name, max_tokens=settings.max_tokens_per_call
         )
         self.parser = PydanticOutputParser(pydantic_object=MapperOutput)
         self.prompt = ChatPromptTemplate.from_template(get_mapper_prompt())
@@ -38,30 +38,23 @@ class RelationshipMapper():
         self.format_instructions = self.parser.get_format_instructions()
 
     @retry(
-        stop=stop_after_attempt(settings.llm_max_retries) |
-            stop_after_delay(settings.llm_timeout_s),
+        stop=stop_after_attempt(settings.llm_max_retries)
+        | stop_after_delay(settings.llm_timeout_s),
         wait=wait_exponential(multiplier=settings.llm_retry_base_delay_s),
-        reraise=True
+        reraise=True,
     )
-    def _invoke(
-            self,
-            chain: Any,
-            inputs: dict[str, Any]
-        ) -> tuple[MapperOutput, int]:
+    def _invoke(self, chain: Any, inputs: dict[str, Any]) -> tuple[MapperOutput, int]:
         """Invokes the LangChain chain with retry and timeout logic."""
         callback = UsageMetadataCallbackHandler()
         result = chain.invoke(inputs, config={"callbacks": [callback]})
         token_count = sum(
-            getattr(v, "total_tokens", 0) or 0
-            for v in callback.usage_metadata.values()
+            getattr(v, "total_tokens", 0) or 0 for v in callback.usage_metadata.values()
         )
         return result, token_count
 
     def _build_deterministic_joins(
-            self,
-            tables: Dict[str, TableEntry],
-            schema_lookup: Dict[str, TableSchema]
-        ) -> Dict[str, TableEntry]:
+        self, tables: Dict[str, TableEntry], schema_lookup: Dict[str, TableSchema]
+    ) -> Dict[str, TableEntry]:
         """Builds join paths from declared FK constraints and inferred naming
         patterns before the LLM call.
         Declared joins (`fk_source=FKSource.declared`) get `confidence=1.0` and
@@ -85,23 +78,26 @@ class RelationshipMapper():
                         )
                         existing = tables[table_name].joins
                         tables[table_name] = tables[table_name].model_copy(
-                            update={"joins": existing + [JoinPath(
-                                source_table=table_name,
-                                target_table=target,
-                                on_clause=f"{table_name}.{col.name} = {target}.id",
-                                cardinality=JoinCardinality.one_to_many,
-                                confidence=confidence,
-                                join_confidence=confidence,
-                                join_source=join_source
-                            )]}
+                            update={
+                                "joins": existing
+                                + [
+                                    JoinPath(
+                                        source_table=table_name,
+                                        target_table=target,
+                                        on_clause=f"{table_name}.{col.name} = {target}.id",
+                                        cardinality=JoinCardinality.one_to_many,
+                                        confidence=confidence,
+                                        join_confidence=confidence,
+                                        join_source=join_source,
+                                    )
+                                ]
+                            }
                         )
         return tables
 
     def map(
-            self,
-            tables: Dict[str, TableEntry],
-            schemas: List[TableSchema]
-        ) -> Dict[str, TableEntry]:
+        self, tables: Dict[str, TableEntry], schemas: List[TableSchema]
+    ) -> Dict[str, TableEntry]:
         """Infers join relationships across all tables in a single LLM call.
         Builds deterministic joins first, then sends the full table graph
         to the LLM for ambiguous relationship inference. Deduplicates LLM
@@ -112,8 +108,7 @@ class RelationshipMapper():
 
         # Update tables with deterministic joins
         tables = self._build_deterministic_joins(
-            tables=tables,
-            schema_lookup=schema_lookup
+            tables=tables, schema_lookup=schema_lookup
         )
 
         # Serialize table graph
@@ -125,18 +120,34 @@ class RelationshipMapper():
                     {
                         "name": col.name,
                         "role": col.role.value,
-                        "is_pk": next(
-                            (c.is_pk for c in schema_lookup[table_name].columns
-                            if c.name == col.name), False
-                        ) if table_name in schema_lookup else False,
-                        "is_fk": next(
-                            (c.is_fk for c in schema_lookup[table_name].columns
-                            if c.name == col.name), False
-                        ) if table_name in schema_lookup else False,
+                        "is_pk": (
+                            next(
+                                (
+                                    c.is_pk
+                                    for c in schema_lookup[table_name].columns
+                                    if c.name == col.name
+                                ),
+                                False,
+                            )
+                            if table_name in schema_lookup
+                            else False
+                        ),
+                        "is_fk": (
+                            next(
+                                (
+                                    c.is_fk
+                                    for c in schema_lookup[table_name].columns
+                                    if c.name == col.name
+                                ),
+                                False,
+                            )
+                            if table_name in schema_lookup
+                            else False
+                        ),
                     }
                     for col in entry.columns
                 ],
-                "dialect_hints": [h.model_dump() for h in entry.dialect_hints]
+                "dialect_hints": [h.model_dump() for h in entry.dialect_hints],
             }
             for table_name, entry in tables.items()
         }
@@ -144,38 +155,42 @@ class RelationshipMapper():
         # Define inputs
         inputs = {
             "table_graph": str(table_context),
-            "format_instructions": self.format_instructions
+            "format_instructions": self.format_instructions,
         }
 
         # Extract the result
         try:
             with Span("llm_mapping") as span:
                 result, token_count = self._invoke(chain=self.chain, inputs=inputs)
-            logger.info("mapping_completed",
-                            model=self.model_name,
-                            token_count=token_count,
-                            latency_ms=span.latency_ms)
+            logger.info(
+                "mapping_completed",
+                model=self.model_name,
+                token_count=token_count,
+                latency_ms=span.latency_ms,
+            )
         except Exception as e:
-            logger.warning("primary_model_failed_falling_back",
-                      primary=self.model_name,
-                      fallback=settings.fallback_model,
-                      error=str(e))
+            logger.warning(
+                "primary_model_failed_falling_back",
+                primary=self.model_name,
+                fallback=settings.fallback_model,
+                error=str(e),
+            )
             fallback_model = init_chat_model(
-                model=settings.fallback_model,
-                max_tokens=settings.max_tokens_per_call
+                model=settings.fallback_model, max_tokens=settings.max_tokens_per_call
             )
             fallback_chain = self.prompt | fallback_model | self.parser
 
             try:
                 with Span("llm_mapping_fallback") as span:
                     result, token_count = self._invoke(
-                        chain=fallback_chain,
-                        inputs=inputs
+                        chain=fallback_chain, inputs=inputs
                     )
-                logger.info("mapping_completed",
-                            model=settings.fallback_model,
-                            token_count=token_count,
-                            latency_ms=span.latency_ms)
+                logger.info(
+                    "mapping_completed",
+                    model=settings.fallback_model,
+                    token_count=token_count,
+                    latency_ms=span.latency_ms,
+                )
             except Exception as fallback_e:
                 logger.error("fallback_model_failed", error=str(fallback_e))
                 raise

@@ -13,7 +13,8 @@ from unifysql.semantic.models import SemanticLayer
 # Instantiate logger
 logger = get_logger()
 
-class SemanticLayerStore():
+
+class SemanticLayerStore:
     def __init__(self, storage_dir: Union[str, Path] = settings.semantic_layer_dir):
         self.storage_dir = storage_dir
 
@@ -26,7 +27,7 @@ class SemanticLayerStore():
 
         # Save semantic layer
         try:
-            with open(file_path, 'w') as file:
+            with open(file_path, "w") as file:
                 yaml.dump(layer.model_dump(mode="json"), file, default_flow_style=False)
                 logger.info("schema_layer_serialization_succeeded", file=file_name)
         except Exception as e:
@@ -43,28 +44,24 @@ class SemanticLayerStore():
         latest_file = max(files, key=os.path.getmtime)
 
         # Load latest YAML file
-        with open(latest_file, 'r') as file:
+        with open(latest_file, "r") as file:
             loaded_file = yaml.safe_load(file)
 
         # Deserialize and return SemanticLayer
         return SemanticLayer.model_validate(loaded_file)
 
     def diff(
-            self,
-            stored_layer: SemanticLayer,
-            current_layer: SemanticLayer
-        ) -> Dict[str, Any]:
+        self, stored_layer: SemanticLayer, current_layer: SemanticLayer
+    ) -> Dict[str, Any]:
         """Compares two `SemanticLayer` versions and returns their differences."""
         # Define new tables
-        added_tables = (
-            set(current_layer.tables.keys())
-            - set(stored_layer.tables.keys())
+        added_tables = set(current_layer.tables.keys()) - set(
+            stored_layer.tables.keys()
         )
 
         # Define old tables
-        removed_tables = (
-            set(stored_layer.tables.keys())
-            - set(current_layer.tables.keys())
+        removed_tables = set(stored_layer.tables.keys()) - set(
+            current_layer.tables.keys()
         )
 
         # Define columns changes
@@ -79,11 +76,11 @@ class SemanticLayerStore():
             if added or removed:
                 column_changes[table_name] = {
                     "added": list(added),
-                    "removed": list(removed)
+                    "removed": list(removed),
                 }
 
         return {
             "added_tables": list(added_tables),
             "removed_tables": list(removed_tables),
-            "column_changes": column_changes
+            "column_changes": column_changes,
         }

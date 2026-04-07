@@ -10,7 +10,8 @@ from unifysql.semantic.models import FKSource, TableSchema
 # Instantiate logger
 logger = get_logger()
 
-class MetadataEnricher():
+
+class MetadataEnricher:
     def __init__(self, schema: List[TableSchema], engine: Optional[Engine]):
         self.schema = schema
         self.engine = engine
@@ -48,31 +49,45 @@ class MetadataEnricher():
                         ).scalar()
                         null_rate = (
                             float(null_count or 0) / float(row_count)
-                            if row_count else 0.0
+                            if row_count
+                            else 0.0
                         )
 
                         # Infer foreign key
                         inferred_fk = self._infer_fk(col.name)
 
                         # Update columns
-                        updated_columns.append(col.model_copy(update={
-                            "sample_values": sample_values,
-                            "null_rate": null_rate,
-                            "is_fk": col.is_fk or inferred_fk,
-                            "fk_source": col.fk_source if col.is_fk else
-                                (FKSource.inferred if inferred_fk else None)
-                        }))
+                        updated_columns.append(
+                            col.model_copy(
+                                update={
+                                    "sample_values": sample_values,
+                                    "null_rate": null_rate,
+                                    "is_fk": col.is_fk or inferred_fk,
+                                    "fk_source": (
+                                        col.fk_source
+                                        if col.is_fk
+                                        else (
+                                            FKSource.inferred if inferred_fk else None
+                                        )
+                                    ),
+                                }
+                            )
+                        )
 
                     # Scrub column metadata
                     scrubbed_columns = scrub_columns(columns=updated_columns)
-                    logger.info("enriched_columns_successfully_scrubbed",
-                                n_col=len(scrubbed_columns))
+                    logger.info(
+                        "enriched_columns_successfully_scrubbed",
+                        n_col=len(scrubbed_columns),
+                    )
 
                     # Update TableSchema
-                    self.schema[i] = self.schema[i].model_copy(update={
-                        "row_count": row_count or 0,
-                        "columns": scrubbed_columns
-                    })
+                    self.schema[i] = self.schema[i].model_copy(
+                        update={
+                            "row_count": row_count or 0,
+                            "columns": scrubbed_columns,
+                        }
+                    )
 
             logger.info("schema_enriched_with_metadata", n_tables=len(self.schema))
 

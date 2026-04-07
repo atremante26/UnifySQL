@@ -29,14 +29,21 @@ PII_PATTERNS = [
     "national_id",
 ]
 
+
 def is_pii_column(column_name: str) -> bool:
     """Return True if a column_name matches a PII pattern, otherwise return False."""
     return any(pattern in column_name.lower() for pattern in PII_PATTERNS)
 
+
 def scrub_columns(columns: List[ColumnSchema]) -> List[ColumnSchema]:
     """Redact PII columns from a list of ColumnSchemas."""
     return [
-        column.model_copy(
-            update={"sample_values": ["[REDACTED]"] * len(column.sample_values)}
-        ) if is_pii_column(column.name) else column for column in columns
+        (
+            column.model_copy(
+                update={"sample_values": ["[REDACTED]"] * len(column.sample_values)}
+            )
+            if is_pii_column(column.name)
+            else column
+        )
+        for column in columns
     ]

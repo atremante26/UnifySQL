@@ -37,4 +37,4 @@ class Settings(BaseSettings):
 
 
 # Singleton
-settings = Settings() # type: ignore[call-arg]
+settings = Settings()  # type: ignore[call-arg]

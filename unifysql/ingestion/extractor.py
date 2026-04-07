@@ -8,7 +8,8 @@ from unifysql.semantic.models import TableSchema
 # Instantiate logger
 logger = get_logger()
 
-class SchemaExtractor():
+
+class SchemaExtractor:
     def __init__(self, adaptor: BaseAdaptor, dialect: str):
         self.adaptor = adaptor
         self.dialect = dialect
@@ -44,14 +45,16 @@ class SchemaExtractor():
             # Get columns
             columns = self.adaptor.get_columns(table_name)
 
-            final_tables.append(TableSchema(
-                name=table_name,
-                columns=columns,
-                row_count=0, # default value
-                schema_hash=schema_hash,
-                dialect=self.dialect,
-                raw_ddl=ddl_map[table_name]
-            ))
+            final_tables.append(
+                TableSchema(
+                    name=table_name,
+                    columns=columns,
+                    row_count=0,  # default value
+                    schema_hash=schema_hash,
+                    dialect=self.dialect,
+                    raw_ddl=ddl_map[table_name],
+                )
+            )
 
         logger.info("schema_extraction_completed", n_tables=len(final_tables))
 

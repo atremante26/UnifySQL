@@ -9,11 +9,14 @@ from pydantic import BaseModel
 # Ingestion Models
 class FKSource(Enum):
     """Foreign Key source enum."""
+
     declared = "declared"
     inferred = "inferred"
 
+
 class ColumnSchema(BaseModel):
     """A single column schema."""
+
     name: str
     type: str
     nullable: bool
@@ -23,8 +26,10 @@ class ColumnSchema(BaseModel):
     sample_values: List[str]
     null_rate: float
 
+
 class TableSchema(BaseModel):
     """A single table schema."""
+
     name: str
     columns: List[ColumnSchema]
     row_count: int
@@ -32,36 +37,46 @@ class TableSchema(BaseModel):
     dialect: str
     raw_ddl: str
 
+
 # Semantic Layer Models
 class ColumnRole(Enum):
     """Column role enum."""
+
     metric = "metric"
     dimension = "dimension"
     filter = "filter"
     identifier = "identifier"
 
+
 class ColumnEntry(BaseModel):
     """A single column entry."""
+
     name: str
     description: str
     alias: List[str]
     role: ColumnRole
     aggregation: Optional[str] = None
 
+
 class JoinCardinality(Enum):
     """Join cardinality enum."""
+
     one_to_one = "one_to_one"
     one_to_many = "one_to_many"
     many_to_many = "many_to_many"
 
+
 class JoinSource(Enum):
     """Join source enum."""
+
     declared = "declared"
     inferred = "inferred"
     llm_inferred = "llm_inferred"
 
+
 class JoinPath(BaseModel):
     """A join path between two columns."""
+
     source_table: str
     target_table: str
     on_clause: str
@@ -70,32 +85,42 @@ class JoinPath(BaseModel):
     join_confidence: float
     join_source: JoinSource
 
+
 class DialectHint(BaseModel):
     """A hint for SQL dialect."""
+
     function_name: str
     template: str
 
+
 class TableEntry(BaseModel):
     """A single table entry."""
+
     description: str
     columns: List[ColumnEntry]
     joins: List[JoinPath]
     filters: List[str]
     dialect_hints: List[DialectHint]
+
 
 class AnnotatorOutput(BaseModel):
     """The output of the LangChain annotator."""
+
     description: str
     columns: List[ColumnEntry]
     filters: List[str]
     dialect_hints: List[DialectHint]
 
+
 class MapperOutput(BaseModel):
     """The output of the LangChain mapper."""
+
     joins: List[JoinPath]
+
 
 class SemanticLayer(BaseModel):
     """Data schema for semantic layer"""
+
     version: str
     schema_hash: str
     dialect: str
@@ -103,9 +128,11 @@ class SemanticLayer(BaseModel):
     tables: Dict[str, TableEntry]
     created_at: datetime
 
+
 # Translation Model
 class TranslationRequest(BaseModel):
     """A text-to-SQL translation request."""
+
     question: str
     schema_id: UUID
     dialect: str
@@ -113,8 +140,10 @@ class TranslationRequest(BaseModel):
     execute: bool = False
     preview: bool = True
 
+
 class TranslationResult(BaseModel):
     """The result of a text-to-SQL translation request."""
+
     query_id: UUID
     sql: str
     dialect: str
@@ -128,30 +157,38 @@ class TranslationResult(BaseModel):
     token_count: int
     selection_rationale: str
 
+
 class ValidationResult(BaseModel):
     """The result of validating a generated SQL query."""
+
     valid: bool
     error_type: Optional[str] = None
     error_detail: Optional[str] = None
 
+
 # Execution and Response Models
 class WarehouseType(Enum):
     """Warehouse type enum."""
+
     postgres = "POSTGRES"
     snowflake = "SNOWFLAKE"
     big_query = "BIG_QUERY"
 
+
 class QueryResult(BaseModel):
     """The result of executing a generated SQL query."""
+
     query_id: UUID
     sql: str
-    result_set: Dict[str, List[Any]] # {column_name: [val1, val2, ...]}
+    result_set: Dict[str, List[Any]]  # {column_name: [val1, val2, ...]}
     row_count: int
     execution_ms: float
     warehouse: WarehouseType
 
+
 class ErrorType(Enum):
     """Enum of error types."""
+
     syntax = "syntax"
     schema = "schema"
     join = "join"
@@ -159,15 +196,19 @@ class ErrorType(Enum):
     LLM = "LLM"
     execution = "execution"
 
+
 class ErrorDetail(BaseModel):
     """Structured error detail for a failed pipeline operation."""
+
     query_id: UUID
     error_type: ErrorType
     error_detail: str
     sql: Optional[str] = None
 
+
 class APIResponse(BaseModel):
     """The response of a Flask API call."""
+
     query_id: UUID
     sql: Optional[str] = None
     result: Optional[QueryResult] = None
@@ -175,9 +216,11 @@ class APIResponse(BaseModel):
     warnings: List[str]
     error: Optional[ErrorDetail] = None
 
+
 # Feedback Models
 class Correction(BaseModel):
     """A corrected SQL query."""
+
     query_id: UUID
     question: str
     bad_sql: str
@@ -185,8 +228,10 @@ class Correction(BaseModel):
     schema_id: UUID
     created_at: datetime
 
+
 class CorrectionRecord(BaseModel):
     """A record of a corrected SQL query."""
+
     correction: Correction
     embedding_vector: List[float]
     retrieval_count: int

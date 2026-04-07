@@ -7,8 +7,10 @@ from unifysql.observability.logger import get_logger
 # Instantiate logger
 logger = get_logger()
 
+
 class Span:
     """Lightweight Span context manager to calculate latency of pipeline operations."""
+
     def __init__(self, stage: str):
         """Initialize Span for stage."""
         self.stage = stage
@@ -24,7 +26,7 @@ class Span:
         self,
         exc_type: Optional[Type[BaseException]],
         exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType]
+        exc_tb: Optional[TracebackType],
     ) -> Literal[False]:
         """Record Span instance end time."""
         self.latency_ms = (time.time() - self.start_time) * 1000.0

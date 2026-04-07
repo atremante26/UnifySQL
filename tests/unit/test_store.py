@@ -15,11 +15,9 @@ from unifysql.semantic.store import SemanticLayerStore
 
 def make_column_entry(name: str) -> ColumnEntry:
     return ColumnEntry(
-        name=name,
-        description="Test column",
-        alias=[],
-        role=ColumnRole.dimension
+        name=name, description="Test column", alias=[], role=ColumnRole.dimension
     )
+
 
 def make_table_entry(columns: list[str]) -> TableEntry:
     return TableEntry(
@@ -27,21 +25,22 @@ def make_table_entry(columns: list[str]) -> TableEntry:
         columns=[make_column_entry(c) for c in columns],
         joins=[],
         filters=[],
-        dialect_hints=[]
+        dialect_hints=[],
     )
 
+
 def make_semantic_layer(
-        schema_hash: str,
-        tables: Dict[str, TableEntry]
-    ) -> SemanticLayer:
+    schema_hash: str, tables: Dict[str, TableEntry]
+) -> SemanticLayer:
     return SemanticLayer(
         version="1.0",
         schema_hash=schema_hash,
         dialect="postgres",
         generated_by="gpt-4o",
         tables=tables,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
+
 
 def test_save_and_load(tmp_path: Path) -> None:
     """Pytest unit test for saving and loading a `SemanticLayer`."""
@@ -67,6 +66,7 @@ def test_save_and_load(tmp_path: Path) -> None:
     assert sample_layer.dialect == loaded_layer.dialect
     assert sample_layer.tables == loaded_layer.tables
 
+
 def test_load_not_found(tmp_path: Path) -> None:
     """Pytest unit test for loading a non-existent `SemanticLayer`."""
     # Create test SemanticLayerStore
@@ -77,6 +77,7 @@ def test_load_not_found(tmp_path: Path) -> None:
         sample_store.load(schema_hash="1234567")
 
     assert excinfo.type is FileNotFoundError
+
 
 def test_diff_changes(tmp_path: Path) -> None:
     """Pytest unit test for `diff()` with two different `SemanticLayers`."""
@@ -104,6 +105,7 @@ def test_diff_changes(tmp_path: Path) -> None:
     assert "table_2" in result["removed_tables"]
     assert "col_new" in result["column_changes"]["table_1"]["added"]
 
+
 def test_diff_identical(tmp_path: Path) -> None:
     """Pytest unit test for diff() with two identical `SemanticLayers`."""
     # SemanticLayer has table_0, table_1, table_2 with col_0, col_1, col_2
@@ -118,8 +120,4 @@ def test_diff_identical(tmp_path: Path) -> None:
     sample_store = SemanticLayerStore(storage_dir=tmp_path)
 
     result = sample_store.diff(stored_layer=sample_layer, current_layer=sample_layer)
-    assert result == {
-            "added_tables": [],
-            "removed_tables": [],
-            "column_changes": {}
-        }
+    assert result == {"added_tables": [], "removed_tables": [], "column_changes": {}}

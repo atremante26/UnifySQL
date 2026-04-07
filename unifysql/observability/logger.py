@@ -12,6 +12,7 @@ def bind_query_id(query_id: UUID) -> None:
     # Bind query_id to logger as context variable
     structlog.contextvars.bind_contextvars(query_id=query_id)
 
+
 def configure_logging() -> None:
     """Configure struclog logger."""
     structlog.configure(
@@ -19,9 +20,10 @@ def configure_logging() -> None:
             structlog.contextvars.merge_contextvars,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.add_log_level,
-            structlog.processors.JSONRenderer()
+            structlog.processors.JSONRenderer(),
         ]
     )
+
 
 def get_logger() -> structlog.stdlib.BoundLogger:
     """Return structlog logger."""

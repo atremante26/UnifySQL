@@ -38,6 +38,7 @@ That is handled separately.
 {format_instructions}
 """
 
+
 def get_mapper_prompt() -> str:
     """
     Returns the prompt template for the LLM relationship mapper chain.

@@ -10,6 +10,7 @@ from unifysql.semantic.models import ColumnSchema, FKSource
 # Instantiate logger
 logger = get_logger()
 
+
 class PostgresAdaptor(BaseAdaptor):
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
@@ -27,7 +28,6 @@ class PostgresAdaptor(BaseAdaptor):
             logger.info("postgres_connection_succeeded.")
         except Exception as e:
             logger.error("postgres_connection_failed", error=str(e))
-
 
     def get_tables(self) -> List[str]:
         """Returns a list of tables in a Postgres database."""
@@ -64,15 +64,17 @@ class PostgresAdaptor(BaseAdaptor):
 
         column_schemas = []
         for c in columns:
-            column_schemas.append(ColumnSchema(
-                name=c["name"],
-                type=str(c["type"]),
-                nullable=c["nullable"],
-                is_pk=c["name"] in pk_columns,
-                is_fk=c["name"] in fk_columns,
-                sample_values=[], # default value
-                null_rate=0.0, # default value
-                fk_source=FKSource.declared if c["name"] in fk_columns else None
-            ))
+            column_schemas.append(
+                ColumnSchema(
+                    name=c["name"],
+                    type=str(c["type"]),
+                    nullable=c["nullable"],
+                    is_pk=c["name"] in pk_columns,
+                    is_fk=c["name"] in fk_columns,
+                    sample_values=[],  # default value
+                    null_rate=0.0,  # default value
+                    fk_source=FKSource.declared if c["name"] in fk_columns else None,
+                )
+            )
 
         return column_schemas

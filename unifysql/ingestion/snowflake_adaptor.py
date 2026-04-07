@@ -10,6 +10,7 @@ from unifysql.semantic.models import ColumnSchema, FKSource
 # Instantiate logger
 logger = get_logger()
 
+
 class SnowflakeAdaptor(BaseAdaptor):
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
@@ -66,15 +67,17 @@ class SnowflakeAdaptor(BaseAdaptor):
 
         column_schemas = []
         for c in columns:
-            column_schemas.append(ColumnSchema(
-                name=c["name"],
-                type=str(c["type"]),
-                nullable=c["nullable"],
-                is_pk=c["name"] in pk_columns,
-                is_fk=c["name"] in fk_columns,
-                sample_values=[], # default value
-                null_rate=0.0, # default value
-                fk_source=FKSource.declared if c["name"] in fk_columns else None
-            ))
+            column_schemas.append(
+                ColumnSchema(
+                    name=c["name"],
+                    type=str(c["type"]),
+                    nullable=c["nullable"],
+                    is_pk=c["name"] in pk_columns,
+                    is_fk=c["name"] in fk_columns,
+                    sample_values=[],  # default value
+                    null_rate=0.0,  # default value
+                    fk_source=FKSource.declared if c["name"] in fk_columns else None,
+                )
+            )
 
         return column_schemas
