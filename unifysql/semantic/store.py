@@ -1,7 +1,8 @@
 import glob
 import os
 import time
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Union
 
 import yaml
 
@@ -13,7 +14,7 @@ from unifysql.semantic.models import SemanticLayer
 logger = get_logger()
 
 class SemanticLayerStore():
-    def __init__(self, storage_dir: str = settings.semantic_layer_dir):
+    def __init__(self, storage_dir: Union[str, Path] = settings.semantic_layer_dir):
         self.storage_dir = storage_dir
 
     def save(self, layer: SemanticLayer) -> None:
