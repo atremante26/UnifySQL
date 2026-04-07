@@ -1,3 +1,4 @@
+```markdown
 # UnifySQL
 
 Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constructed and maintained semantic layer.
@@ -11,41 +12,42 @@ Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constr
 ### Installation
 
 1. Clone the repo
-```
+   ```
    git clone <repo-url>
    cd unifysql
-```
+   ```
 
 2. Install Python 3.11
-```
+   ```
    pyenv install 3.11.13
    pyenv local 3.11.13
-```
+   ```
 
 3. Install dependencies
-```
+   ```
    poetry install
-```
+   ```
 
 4. **Apple Silicon only** — install torch and sentence-transformers manually
-```
+   ```
    poetry run pip install --no-cache-dir "torch>=2.4"
    poetry run pip install --no-cache-dir "numpy<2"
    poetry run pip install --no-cache-dir sentence-transformers
-```
+   ```
 
 5. Configure secrets
-```
+   ```
    cp .env.example .env
-```
+   ```
    Fill in your API keys and connection strings in `.env`.
 
 6. Verify installation
-```
+   ```
    poetry run python -c "from sentence_transformers import SentenceTransformer; print('ok')"
-```
+   ```
 
 ## Development
+
 ```
 make install     # install dependencies
 make test        # run test suite
@@ -68,23 +70,31 @@ UnifySQL is split into two paths:
 - Phase 1 complete — Pydantic data models for all pipeline stages
 - Phase 2 complete — observability scaffold (structured logging, span timing, metrics, PII scrubber)
 - Phase 3 complete — schema ingestion (Postgres, Snowflake, BigQuery adaptors, extractor, metadata enricher)
+- Phase 4 complete — semantic layer construction (LLM annotator, relationship mapper, versioned YAML store)
 
 ## Project Structure
+
 ```
 unifysql/
-├── ingestion/        # Offline path — schema extraction and enrichment
+├── ingestion/              # Offline path — schema extraction and enrichment
 │   ├── adaptor.py          # BaseAdaptor abstract interface
 │   ├── postgres_adaptor.py # PostgresAdaptor implementation
 │   ├── snowflake_adaptor.py # SnowflakeAdaptor implementation
 │   ├── bigquery_adaptor.py  # BigQueryAdaptor implementation
 │   ├── extractor.py        # SchemaExtractor with SHA-256 fingerprinting
 │   └── enricher.py         # MetadataEnricher with row counts, samples, FK inference
-├── semantic/         # Semantic layer construction and storage
-├── translation/      # Online path — NL to SQL translation
-├── execution/        # DB execution and result handling
-├── feedback/         # Correction loop and retrieval
-├── observability/    # Logging, tracing, metrics, PII scrubbing
-├── eval/             # Evaluation harness and golden set
-├── api/              # Flask API and middleware
-└── config.py         # Pydantic settings
+├── semantic/               # Semantic layer construction and storage
+│   ├── annotator.py        # LLM annotator with retry and fallback routing
+│   ├── mapper.py           # Relationship mapper with three-stage join inference
+│   ├── store.py            # Versioned YAML persistence with drift detection
+│   ├── prompts.py          # Annotator and mapper prompt templates
+│   └── models.py           # All Pydantic data models
+├── translation/            # Online path — NL to SQL translation
+├── execution/              # DB execution and result handling
+├── feedback/               # Correction loop and retrieval
+├── observability/          # Logging, tracing, metrics, PII scrubbing
+├── eval/                   # Evaluation harness and golden set
+├── api/                    # Flask API and middleware
+├── exceptions.py           # Custom exceptions
+└── config.py               # Pydantic settings
 ```
