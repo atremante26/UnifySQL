@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     preview_default_limit: int = 100
     join_confidence_execution_threshold: float = 0.85
     semantic_layer_dir: str = "semantic_layers/"
+    chroma_path: str = "chroma/"
 
     # Observability
     log_level: str = "INFO"
