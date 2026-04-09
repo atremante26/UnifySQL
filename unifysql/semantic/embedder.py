@@ -1,4 +1,5 @@
 from typing import Dict, List
+from uuid import UUID
 
 import chromadb
 import numpy as np
@@ -21,7 +22,13 @@ class SemanticEmbedder:
         # Initialize embedding model
         self.model = SentenceTransformer(settings.embedding_model)
 
-    def embed_tables(self, schema_id: str, tables: Dict[str, TableEntry]) -> None:
+    def embed_tables(self, schema_id: UUID, tables: Dict[str, TableEntry]) -> None:
+        """
+        Embeds table descriptions and stores them in ChromaDB.
+
+        Deletes existing embeddings for the schema before adding new ones
+        to ensure stale embeddings are never matched against.
+        """
         # Delete old embeddings for same schema_id
         self.collection.delete(where={"schema_id": str(schema_id), "type": "table"})
         logger.info("old_table_embeddings_deleted")
@@ -47,7 +54,13 @@ class SemanticEmbedder:
             )
         logger.info("table_embeddings_added", n_tables=len(tables))
 
-    def query_table(self, schema_id: str, question: str) -> List[str]:
+    def query_table(self, schema_id: UUID, question: str) -> List[str]:
+        """
+        Returns the top-k most semantically similar table names for a question.
+
+        Embeds the NL question and queries ChromaDB for the most similar
+        table description embeddings within the specified schema.
+        """
         # Embed question
         question_embedding = self.model.encode(question)
         question_array = np.array(question_embedding)
