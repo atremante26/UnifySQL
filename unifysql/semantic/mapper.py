@@ -84,7 +84,9 @@ class RelationshipMapper:
                                     JoinPath(
                                         source_table=table_name,
                                         target_table=target,
-                                        on_clause=f"{table_name}.{col.name} = {target}.id",
+                                        on_clause=(
+                                            f"{table_name}.{col.name} = {target}.id"
+                                        ),
                                         cardinality=JoinCardinality.one_to_many,
                                         confidence=confidence,
                                         join_confidence=confidence,
