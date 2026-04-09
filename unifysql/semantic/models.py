@@ -129,7 +129,37 @@ class SemanticLayer(BaseModel):
     created_at: datetime
 
 
+# Feedback Models
+class Correction(BaseModel):
+    """A corrected SQL query."""
+
+    query_id: UUID
+    question: str
+    bad_sql: str
+    corrected_sql: str
+    schema_id: UUID
+    created_at: datetime
+
+
+class CorrectionRecord(BaseModel):
+    """A record of a corrected SQL query."""
+
+    correction: Correction
+    embedding_vector: List[float]
+    retrieval_count: int
+    schema_hash: str
+    semantic_layer_version: str
+
+
 # Translation Model
+class ContextResult(BaseModel):
+    """The assembled context for a translation request."""
+
+    relevant_tables: Dict[str, TableEntry]
+    few_shot_corrections: List[CorrectionRecord]
+    selection_rationale: str
+
+
 class TranslationRequest(BaseModel):
     """A text-to-SQL translation request."""
 
@@ -215,25 +245,3 @@ class APIResponse(BaseModel):
     confidence: Optional[float] = None
     warnings: List[str]
     error: Optional[ErrorDetail] = None
-
-
-# Feedback Models
-class Correction(BaseModel):
-    """A corrected SQL query."""
-
-    query_id: UUID
-    question: str
-    bad_sql: str
-    corrected_sql: str
-    schema_id: UUID
-    created_at: datetime
-
-
-class CorrectionRecord(BaseModel):
-    """A record of a corrected SQL query."""
-
-    correction: Correction
-    embedding_vector: List[float]
-    retrieval_count: int
-    schema_hash: str
-    semantic_layer_version: str
