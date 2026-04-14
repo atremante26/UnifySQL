@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     postgres_url: Optional[str] = None
     snowflake_dsn: Optional[str] = None
     bq_project: Optional[str] = None
+    db_execution_timeout_s: int = 10
 
     # LLM
     openai_api_key: str
