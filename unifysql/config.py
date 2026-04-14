@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     postgres_url: Optional[str] = None
     snowflake_dsn: Optional[str] = None
     bq_project: Optional[str] = None
+    correction_db_url: str = "sqlite:///feedback.db"
     db_execution_timeout_s: int = 10
 
     # LLM
