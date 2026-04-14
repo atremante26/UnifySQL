@@ -12,7 +12,7 @@ Model-agnostic, warehouse-aware Text-to-SQL pipeline with an automatically const
 
 1. Clone the repo
    ```
-   git clone <repo-url>
+   git clone https://github.com/atremante26/UnifySQL.git
    cd unifysql
    ```
 
@@ -71,6 +71,7 @@ UnifySQL is split into two paths:
 - Phase 2 complete — observability scaffold (structured logging, span timing, metrics, PII scrubber)
 - Phase 3 complete — schema ingestion (Postgres, Snowflake, BigQuery adaptors, extractor, metadata enricher)
 - Phase 4 complete — semantic layer construction (LLM annotator, relationship mapper, versioned YAML store)
+- Phase 5 complete — translation pipeline (context builder, LLM translator, SQLGlot compiler, validator)
 
 ## Project Structure
 
