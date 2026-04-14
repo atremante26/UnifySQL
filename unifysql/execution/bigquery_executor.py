@@ -43,7 +43,7 @@ class BigQueryExecutor(BaseExecutor):
             logger.error("bigquery_execution_timeout", sql=sql)
             raise
         finally:
-            client.close() # type: ignore[no-untyped-call]
+            client.close()  # type: ignore[no-untyped-call]
 
         # Format records
         rows = list(records)
