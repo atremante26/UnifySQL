@@ -216,6 +216,11 @@ class QueryResult(BaseModel):
     warehouse: WarehouseType
 
 
+class CompilerResult(BaseModel):
+    sql: str
+    validation: ValidationResult
+
+
 class ErrorType(Enum):
     """Enum of error types."""
 
