@@ -70,8 +70,9 @@ UnifySQL is split into two paths:
 - Phase 1 complete — Pydantic data models for all pipeline stages
 - Phase 2 complete — observability scaffold (structured logging, span timing, metrics, PII scrubber)
 - Phase 3 complete — schema ingestion (Postgres, Snowflake, BigQuery adaptors, extractor, metadata enricher)
-- Phase 4 complete — semantic layer construction (LLM annotator, relationship mapper, versioned YAML store)
+- Phase 4 complete — semantic layer construction (LLM annotator, relationship mapper, versioned YAML store, ChromaDB embedder)
 - Phase 5 complete — translation pipeline (context builder, LLM translator, SQLGlot compiler, validator)
+- Phase 6 complete — DB execution (async Postgres, Snowflake, BigQuery executors with timeout enforcement)
 
 ## Project Structure
 
@@ -98,6 +99,10 @@ unifysql/
 │   ├── validator.py        # SELECT guard and schema-grounded validation
 │   └── prompts.py          # Rationale and translator prompt templates
 ├── execution/              # DB execution and result handling
+│   ├── executor.py         # BaseExecutor abstract async interface
+│   ├── postgres_executor.py # PostgresExecutor using asyncpg
+│   ├── snowflake_executor.py # SnowflakeExecutor using asyncio.to_thread
+│   └── bigquery_executor.py  # BigQueryExecutor using asyncio.to_thread
 ├── feedback/               # Correction loop and retrieval
 ├── observability/          # Logging, tracing, metrics, PII scrubbing
 ├── eval/                   # Evaluation harness and golden set
