@@ -9,6 +9,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from unifysql.config import settings
 from unifysql.observability.logger import get_logger
+from unifysql.observability.metrics import log_correction_stored
 from unifysql.semantic.models import CorrectionRecord
 
 # Instantiate logger
@@ -71,11 +72,7 @@ class FeedbackStore:
             )
             session.add(record)
             session.commit()
-            logger.info(
-                "correction_stored",
-                correction_id=record.id,
-                schema_id=str(correction_record.correction.schema_id),
-            )
+            log_correction_stored(correction_record)
 
         # Save embedding to ChromaDB
         self.collection.add(
