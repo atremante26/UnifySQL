@@ -1,6 +1,6 @@
 # UnifySQL
 
-Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constructed and maintained semantic layer.
+Model-agnostic, warehouse-aware Text-to-SQL pipeline with an automatically constructed and maintained semantic layer.
 
 ## Setup
 
@@ -51,6 +51,7 @@ Model-agnostic, warehouse-aware NL → SQL pipeline with an automatically constr
 make install     # install dependencies
 make test        # run test suite
 make lint        # run ruff linter
+make fix         # auto-fix ruff lint errors
 make format      # run black formatter
 make typecheck   # run mypy type checker
 ```
@@ -86,9 +87,15 @@ unifysql/
 │   ├── annotator.py        # LLM annotator with retry and fallback routing
 │   ├── mapper.py           # Relationship mapper with three-stage join inference
 │   ├── store.py            # Versioned YAML persistence with drift detection
+│   ├── embedder.py         # ChromaDB table embedding and similarity search
 │   ├── prompts.py          # Annotator and mapper prompt templates
 │   └── models.py           # All Pydantic data models
 ├── translation/            # Online path — NL to SQL translation
+│   ├── context_builder.py  # Embedding similarity retrieval and rationale generation
+│   ├── translator.py       # LLM SQL generation with retry and fallback routing
+│   ├── compiler.py         # SQLGlot dialect transpilation with preview mode
+│   ├── validator.py        # SELECT guard and schema-grounded validation
+│   └── prompts.py          # Rationale and translator prompt templates
 ├── execution/              # DB execution and result handling
 ├── feedback/               # Correction loop and retrieval
 ├── observability/          # Logging, tracing, metrics, PII scrubbing
