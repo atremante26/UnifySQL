@@ -20,6 +20,7 @@ the question. Be specific about what data each table contributes.
 Do not mention SQL or technical implementation details.
 """
 
+
 def get_translator_prompt() -> str:
     """
     Returns the prompt template for the LLM SQL translator chain.
