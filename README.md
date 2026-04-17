@@ -73,6 +73,7 @@ UnifySQL is split into two paths:
 - Phase 4 complete — semantic layer construction (LLM annotator, relationship mapper, versioned YAML store, ChromaDB embedder)
 - Phase 5 complete — translation pipeline (context builder, LLM translator, SQLGlot compiler, validator)
 - Phase 6 complete — DB execution (async Postgres, Snowflake, BigQuery executors with timeout enforcement)
+- Phase 7 complete — feedback loop (correction store with SQLite/Postgres + ChromaDB, similarity retriever with threshold filtering)
 
 ## Project Structure
 
@@ -104,6 +105,8 @@ unifysql/
 │   ├── snowflake_executor.py # SnowflakeExecutor using asyncio.to_thread
 │   └── bigquery_executor.py  # BigQueryExecutor using asyncio.to_thread
 ├── feedback/               # Correction loop and retrieval
+│   ├── store.py            # FeedbackStore with SQLite/Postgres and ChromaDB
+│   └── retriever.py        # FeedbackRetriever with similarity filtering
 ├── observability/          # Logging, tracing, metrics, PII scrubbing
 ├── eval/                   # Evaluation harness and golden set
 ├── api/                    # Flask API and middleware
