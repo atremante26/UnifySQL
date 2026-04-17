@@ -8,6 +8,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponential
 
 from unifysql.config import settings
+from unifysql.feedback.retriever import FeedbackRetriever
+from unifysql.feedback.store import FeedbackStore
 from unifysql.observability.logger import get_logger
 from unifysql.observability.tracer import Span
 from unifysql.semantic.embedder import SemanticEmbedder
@@ -23,6 +25,7 @@ class ContextBuilder:
     def __init__(self, model_name: Optional[str]) -> None:
         self.embedder = SemanticEmbedder()
         self.store = SemanticLayerStore()
+        self.retriever = FeedbackRetriever(feedback_store=FeedbackStore())
 
         # Initalize model
         self.model_name = str(
@@ -60,8 +63,12 @@ class ContextBuilder:
         few-shot corrections from the feedback store, and generates
         a selection rationale via LLM.
         """
-        relevant_tables = self._get_relevant_tables(question, schema_id, schema_hash)
-        few_shot_corrections = self._get_few_shot_corrections()
+        relevant_tables, semantic_layer_version = self._get_relevant_tables(
+            question, schema_id, schema_hash
+        )
+        few_shot_corrections = self._get_few_shot_corrections(
+            question, schema_id, semantic_layer_version
+        )
         rationale = self._generate_rationale(
             question=question, tables=list(relevant_tables.keys())
         )
@@ -73,9 +80,10 @@ class ContextBuilder:
 
     def _get_relevant_tables(
         self, question: str, schema_id: UUID, schema_hash: str
-    ) -> Dict[str, TableEntry]:
+    ) -> tuple[Dict[str, TableEntry], str]:
         """
-        Retrieves the top-k most relevant `TableEntry` objects for a question.
+        Retrieves the top-k most relevant `TableEntry` objects and
+        semantic_layer_version for a question.
 
         Queries ChromaDB for semantically similar table descriptions, then
         loads the full `TableEntry` objects from the semantic layer YAML.
@@ -96,10 +104,17 @@ class ContextBuilder:
         }
         logger.info("relevant_tables_retrieved", n_tables=len(relevant_tables))
 
-        return relevant_tables
+        return relevant_tables, semantic_layer.version
 
-    def _get_few_shot_corrections(self) -> List[CorrectionRecord]:
-        return []
+    def _get_few_shot_corrections(
+        self, question: str, schema_id: UUID, semantic_layer_version: str
+    ) -> List[CorrectionRecord]:
+        """Retrieves top-k similar past corrections for a given question."""
+        return self.retriever.retrieve(
+            question=question,
+            schema_id=schema_id,
+            semantic_layer_version=semantic_layer_version,
+        )
 
     def _generate_rationale(self, question: str, tables: List[str]) -> str:
         """Generates a one-sentence explanation of why tables were selected."""
