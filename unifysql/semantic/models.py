@@ -123,6 +123,7 @@ class SemanticLayer(BaseModel):
 
     version: str
     schema_hash: str
+    schema_id: UUID
     dialect: str
     generated_by: str
     tables: Dict[str, TableEntry]
