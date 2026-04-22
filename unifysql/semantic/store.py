@@ -3,6 +3,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Union
+from uuid import UUID
 
 import yaml
 
@@ -33,7 +34,7 @@ class SemanticLayerStore:
         except Exception as e:
             logger.error("schema_layer_serialization_failed", error=str(e))
 
-    def load(self, schema_hash: str) -> SemanticLayer:
+    def load_by_schema_hash(self, schema_hash: str) -> SemanticLayer:
         """Loads the most recent `SemanticLayer` for a given schema hash."""
         # Get latest file matching schema_hash
         files = glob.glob(f"{self.storage_dir}/{schema_hash}*.yaml")
@@ -49,6 +50,28 @@ class SemanticLayerStore:
 
         # Deserialize and return SemanticLayer
         return SemanticLayer.model_validate(loaded_file)
+
+    def load_by_schema_id(self, schema_id: UUID) -> SemanticLayer:
+        """
+        Loads the most recent `SemanticLayer` for a given `schema_id`.
+        """
+        matching_files = []
+        for file_path in glob.glob(f"{self.storage_dir}/*.yaml"):
+            with open(file_path, "r") as f:
+                data = yaml.safe_load(f)
+            if str(data.get("schema_id")) == str(schema_id):
+                matching_files.append(file_path)
+
+        if not matching_files:
+            raise FileNotFoundError(
+                f"No semantic layer found for schema_id {schema_id}"
+            )
+
+        latest_file = max(matching_files, key=os.path.getmtime)
+        with open(latest_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        return SemanticLayer.model_validate(data)
 
     def diff(
         self, stored_layer: SemanticLayer, current_layer: SemanticLayer
