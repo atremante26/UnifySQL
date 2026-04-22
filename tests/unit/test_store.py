@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
+from uuid import uuid4
 
 import pytest
 
@@ -35,6 +36,7 @@ def make_semantic_layer(
     return SemanticLayer(
         version="1.0",
         schema_hash=schema_hash,
+        schema_id=uuid4(),
         dialect="postgres",
         generated_by="gpt-4o",
         tables=tables,
@@ -58,7 +60,7 @@ def test_save_and_load(tmp_path: Path) -> None:
     sample_store.save(layer=sample_layer)
 
     # Test load()
-    loaded_layer = sample_store.load(schema_hash="abcdefg")
+    loaded_layer = sample_store.load_by_schema_hash(schema_hash="abcdefg")
 
     # Pytest tests
     assert sample_layer.schema_hash == loaded_layer.schema_hash
@@ -74,7 +76,7 @@ def test_load_not_found(tmp_path: Path) -> None:
 
     # Test load() for hash that doesn't exist
     with pytest.raises(FileNotFoundError) as excinfo:
-        sample_store.load(schema_hash="1234567")
+        sample_store.load_by_schema_hash(schema_hash="1234567")
 
     assert excinfo.type is FileNotFoundError
 

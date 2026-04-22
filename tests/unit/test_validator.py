@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 
@@ -11,6 +12,7 @@ def semantic_layer() -> SemanticLayer:
     return SemanticLayer(
         version="1.0",
         schema_hash="abc123",
+        schema_id=uuid4(),
         dialect="postgres",
         generated_by="gpt-4o",
         created_at=datetime.now(),
