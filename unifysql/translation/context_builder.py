@@ -54,7 +54,9 @@ class ContextBuilder:
         return result, token_count
 
     def build_context(
-        self, question: str, schema_id: UUID, schema_hash: str
+        self,
+        question: str,
+        schema_id: UUID,
     ) -> ContextResult:
         """
         Builds the full context for a translation request.
@@ -64,7 +66,7 @@ class ContextBuilder:
         a selection rationale via LLM.
         """
         relevant_tables, semantic_layer_version = self._get_relevant_tables(
-            question, schema_id, schema_hash
+            question, schema_id
         )
         few_shot_corrections = self._get_few_shot_corrections(
             question, schema_id, semantic_layer_version
@@ -79,7 +81,7 @@ class ContextBuilder:
         )
 
     def _get_relevant_tables(
-        self, question: str, schema_id: UUID, schema_hash: str
+        self, question: str, schema_id: UUID
     ) -> tuple[Dict[str, TableEntry], str]:
         """
         Retrieves the top-k most relevant `TableEntry` objects and
@@ -93,8 +95,8 @@ class ContextBuilder:
             schema_id=schema_id, question=question
         )
 
-        # Get SemanticLayer using schema_hash
-        semantic_layer = self.store.load(schema_hash=schema_hash)
+        # Get SemanticLayer using schema_id
+        semantic_layer = self.store.load_by_schema_id(schema_id=schema_id)
 
         # Get relevant tables
         relevant_tables = {
