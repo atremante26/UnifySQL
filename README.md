@@ -56,6 +56,19 @@ make format      # run black formatter
 make typecheck   # run mypy type checker
 ```
 
+## Evaluation
+
+```
+# Run against golden set
+poetry run python -m unifysql.eval.harness --dataset golden
+
+# Run against Spider train set
+poetry run python -m unifysql.eval.harness --dataset spider --n 100
+
+# Compare against previous run
+poetry run python -m unifysql.eval.harness --dataset golden --compare eval/results/previous_run.json
+```
+
 ## Architecture
 
 UnifySQL is split into two paths:
@@ -74,6 +87,7 @@ UnifySQL is split into two paths:
 - Phase 5 complete — translation pipeline (context builder, LLM translator, SQLGlot compiler, validator)
 - Phase 6 complete — DB execution (async Postgres, Snowflake, BigQuery executors with timeout enforcement)
 - Phase 7 complete — feedback loop (correction store with SQLite/Postgres + ChromaDB, similarity retriever with threshold filtering)
+- Phase 8 complete — eval harness (Spider golden set, EX/EM scoring, regression detection, Click CLI)
 
 ## Project Structure
 
@@ -108,7 +122,14 @@ unifysql/
 │   ├── store.py            # FeedbackStore with SQLite/Postgres and ChromaDB
 │   └── retriever.py        # FeedbackRetriever with similarity filtering
 ├── observability/          # Logging, tracing, metrics, PII scrubbing
+│   ├── logger.py           # structlog JSON configuration with query_id binding
+│   ├── tracer.py           # Span context manager for stage latency tracking
+│   ├── metrics.py          # Structured log records for pipeline events
+│   └── scrubber.py         # PII column detection and sample value redaction
 ├── eval/                   # Evaluation harness and golden set
+│   ├── golden.py           # GoldenEntry, EvalResult, RegressionReport models
+│   ├── golden_set.json     # 26 curated Spider dev entries across 14 databases
+│   └── harness.py          # run_single, run_eval, Click CLI
 ├── api/                    # Flask API and middleware
 ├── exceptions.py           # Custom exceptions
 └── config.py               # Pydantic settings
