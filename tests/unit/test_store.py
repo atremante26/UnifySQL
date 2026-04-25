@@ -123,3 +123,30 @@ def test_diff_identical(tmp_path: Path) -> None:
 
     result = sample_store.diff(stored_layer=sample_layer, current_layer=sample_layer)
     assert result == {"added_tables": [], "removed_tables": [], "column_changes": {}}
+
+
+def test_load_by_schema_id(tmp_path: Path) -> None:
+    """Pytest unit test for loading a SemanticLayer by schema_id."""
+    # Create test SemanticLayer with known schema_id
+    known_schema_id = uuid4()
+    sample_tables = {
+        "table_0": make_table_entry(columns=["col_0", "col_1"]),
+    }
+    sample_layer = make_semantic_layer(schema_hash="xyz789", tables=sample_tables)
+    sample_layer = sample_layer.model_copy(update={"schema_id": known_schema_id})
+
+    # Save and load by schema_id
+    sample_store = SemanticLayerStore(storage_dir=str(tmp_path))
+    sample_store.save(layer=sample_layer)
+    loaded_layer = sample_store.load_by_schema_id(schema_id=known_schema_id)
+
+    assert loaded_layer.schema_id == known_schema_id
+    assert loaded_layer.schema_hash == "xyz789"
+
+
+def test_load_by_schema_id_not_found(tmp_path: Path) -> None:
+    """Pytest unit test for loading a non-existent schema_id."""
+    sample_store = SemanticLayerStore(storage_dir=str(tmp_path))
+
+    with pytest.raises(FileNotFoundError):
+        sample_store.load_by_schema_id(schema_id=uuid4())
