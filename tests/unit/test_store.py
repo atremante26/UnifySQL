@@ -150,3 +150,42 @@ def test_load_by_schema_id_not_found(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError):
         sample_store.load_by_schema_id(schema_id=uuid4())
+
+
+def test_load_by_schema_id_and_version(tmp_path: Path) -> None:
+    """Pytest unit test for loading a SemanticLayer by schema_id and version."""
+    known_schema_id = uuid4()
+    sample_tables = {
+        "table_0": make_table_entry(columns=["col_0", "col_1"]),
+    }
+
+    # Save version 1.0
+    layer_v1 = make_semantic_layer(schema_hash="abc123", tables=sample_tables)
+    layer_v1 = layer_v1.model_copy(
+        update={"schema_id": known_schema_id, "version": "1.0"}
+    )
+
+    # Save version 1.1
+    layer_v2 = make_semantic_layer(schema_hash="def456", tables=sample_tables)
+    layer_v2 = layer_v2.model_copy(
+        update={"schema_id": known_schema_id, "version": "1.1"}
+    )
+
+    sample_store = SemanticLayerStore(storage_dir=str(tmp_path))
+    sample_store.save(layer=layer_v1)
+    sample_store.save(layer=layer_v2)
+
+    # Load specific version
+    loaded = sample_store.load_by_schema_id_and_version(
+        schema_id=known_schema_id, version="1.0"
+    )
+    assert loaded.version == "1.0"
+    assert loaded.schema_id == known_schema_id
+
+
+def test_load_by_schema_id_and_version_not_found(tmp_path: Path) -> None:
+    """Pytest unit test for loading a non-existent schema_id and version."""
+    sample_store = SemanticLayerStore(storage_dir=str(tmp_path))
+
+    with pytest.raises(FileNotFoundError):
+        sample_store.load_by_schema_id_and_version(schema_id=uuid4(), version="1.0")
