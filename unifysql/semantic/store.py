@@ -52,9 +52,7 @@ class SemanticLayerStore:
         return SemanticLayer.model_validate(loaded_file)
 
     def load_by_schema_id(self, schema_id: UUID) -> SemanticLayer:
-        """
-        Loads the most recent `SemanticLayer` for a given `schema_id`.
-        """
+        """Loads the most recent `SemanticLayer` for a given `schema_id`."""
         matching_files = []
         for file_path in glob.glob(f"{self.storage_dir}/*.yaml"):
             with open(file_path, "r") as f:
@@ -69,6 +67,31 @@ class SemanticLayerStore:
 
         latest_file = max(matching_files, key=os.path.getmtime)
         with open(latest_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        return SemanticLayer.model_validate(data)
+
+    def load_by_schema_id_and_version(
+        self, schema_id: UUID, version: str
+    ) -> SemanticLayer:
+        """Loads a `SemanticLayer` for a given `schema_id` and `version`."""
+        matching_file = None
+        for file_path in glob.glob(f"{self.storage_dir}/*.yaml"):
+            with open(file_path, "r") as f:
+                data = yaml.safe_load(f)
+            if (
+                str(data.get("schema_id")) == str(schema_id)
+                and str(data.get("version")) == version
+            ):
+                matching_file = file_path
+
+        if not matching_file:
+            raise FileNotFoundError(
+                f"No semantic layer found for schema_id {str(schema_id)} "
+                f"and version {version}"
+            )
+
+        with open(matching_file, "r") as f:
             data = yaml.safe_load(f)
 
         return SemanticLayer.model_validate(data)
