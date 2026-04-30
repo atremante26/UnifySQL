@@ -19,7 +19,8 @@ class SchemaRegistrationResponse(BaseModel):
     """Response for POST /schemas - returns schema_id immediately, processing async."""
 
     schema_id: UUID
-    status: str = "processing"
+    status: str = "constructing"
+    semantic_layer_version: Optional[str] = None
 
 
 # Translation Models
@@ -63,6 +64,7 @@ class FeedbackResponse(BaseModel):
 
     correction_id: UUID
     retrieval_count: int
+    validation: str
 
 
 # Semantic Layer Models
