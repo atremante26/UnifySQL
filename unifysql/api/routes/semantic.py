@@ -125,7 +125,11 @@ def register_schema() -> Tuple[Response, int]:
     thread.start()
 
     # Build response model
-    response = SchemaRegistrationResponse(schema_id=schema_id, status="processing")
+    response = SchemaRegistrationResponse(
+        schema_id=schema_id,
+        status="constructing",
+        semantic_layer_version=None,  # populated when pipeline completes
+    )
 
     # Serialize to JSON and return
     return jsonify(response.model_dump(mode="json")), 202
