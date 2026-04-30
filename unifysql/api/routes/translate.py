@@ -143,9 +143,13 @@ def translate_question() -> Tuple[Response, int]:
         if req.execute:
             executor: BaseExecutor
             if req.dialect.lower() == "postgres":
-                executor = PostgresExecutor(connection_string=str(settings.postgres_url))
+                executor = PostgresExecutor(
+                    connection_string=str(settings.postgres_url)
+                )
             elif req.dialect.lower() == "snowflake":
-                executor = SnowflakeExecutor(connection_string=str(settings.snowflake_dsn))
+                executor = SnowflakeExecutor(
+                    connection_string=str(settings.snowflake_dsn)
+                )
             else:
                 executor = BigQueryExecutor(connection_string=str(settings.bq_project))
 
