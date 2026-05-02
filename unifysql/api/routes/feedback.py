@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Tuple
 from uuid import UUID
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
 from unifysql.api.models import FeedbackRequest, FeedbackResponse
 from unifysql.feedback.retriever import FeedbackRetriever
@@ -12,31 +12,46 @@ from unifysql.semantic.models import Correction, CorrectionRecord
 from unifysql.semantic.store import SemanticLayerStore
 from unifysql.translation.validator import Validator
 
-# Instantiate logger
 logger = get_logger()
-
 feedback_bp = Blueprint("feedback", __name__)
 
 
 @feedback_bp.route("/feedback", methods=["POST"])
 def add_correction() -> Tuple[Response, int]:
-    """Stores a SQL correction and embeds it for future few-shot retrieval."""
-    # Parse and validate request
+    """
+    Stores a SQL correction and embeds it for future few-shot retrieval.
+    """
     data = request.get_json()
     if not data:
-        return jsonify({"error": "Request body is required"}), 400
+        return (
+            jsonify(
+                {
+                    "query_id": g.get("query_id"),
+                    "error_type": "bad_request",
+                    "error_detail": "Request body is required",
+                }
+            ),
+            400,
+        )
 
     try:
         req = FeedbackRequest.model_validate(data)
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return (
+            jsonify(
+                {
+                    "query_id": g.get("query_id"),
+                    "error_type": "bad_request",
+                    "error_detail": str(e),
+                }
+            ),
+            400,
+        )
 
     try:
-        # Load semantic layer
         semantic_store = SemanticLayerStore()
         semantic_layer = semantic_store.load_by_schema_id(schema_id=req.schema_id)
 
-        # Validate compiled SQL against semantic layer
         validator = Validator()
         validation_result = validator.validate(
             sql=req.corrected_sql, semantic_layer=semantic_layer
@@ -47,15 +62,16 @@ def add_correction() -> Tuple[Response, int]:
             return (
                 jsonify(
                     {
+                        "query_id": g.get("query_id"),
                         "error_type": str(validation_result.error_type),
                         "error_detail": str(validation_result.error_detail),
+                        "sql": req.corrected_sql,
                     }
                 ),
-                400,
+                422,
             )
         logger.info("correction_sql_validated", schema_id=str(req.schema_id))
 
-        # Embed question
         feedback_store = FeedbackStore()
         retriever = FeedbackRetriever(feedback_store=feedback_store)
         correction = Correction(
@@ -69,7 +85,6 @@ def add_correction() -> Tuple[Response, int]:
         embedding = retriever.embed_correction(correction=correction)
         logger.info("correction_embedded", schema_id=str(req.schema_id))
 
-        # Construct CorrectionRecord
         correction_record = CorrectionRecord(
             correction=correction,
             embedding_vector=embedding,
@@ -78,7 +93,6 @@ def add_correction() -> Tuple[Response, int]:
             semantic_layer_version=semantic_layer.version,
         )
 
-        # Store CorrectionRecord
         correction_id = feedback_store.insert(correction_record=correction_record)
         logger.info(
             "correction_stored",
@@ -86,18 +100,45 @@ def add_correction() -> Tuple[Response, int]:
             schema_id=str(req.schema_id),
         )
 
-        # Build response model
         response = FeedbackResponse(
             correction_id=UUID(correction_id),
             retrieval_count=0,
             validation="passed" if validation_result.valid else "failed",
         )
-
-        # Serialize to JSON and return
         return jsonify(response.model_dump(mode="json")), 200
 
+    except TimeoutError:
+        logger.error("request_timeout", path=request.path)
+        return (
+            jsonify(
+                {
+                    "query_id": g.get("query_id"),
+                    "error_type": "timeout",
+                    "error_detail": "Request exceeded E2E timeout budget",
+                }
+            ),
+            504,
+        )
     except FileNotFoundError:
-        return jsonify({"error": "Schema not found"}), 404
+        return (
+            jsonify(
+                {
+                    "query_id": g.get("query_id"),
+                    "error_type": "not_found",
+                    "error_detail": "Schema not found",
+                }
+            ),
+            404,
+        )
     except Exception as e:
         logger.error("feedback_failed", error=str(e))
-        return jsonify({"error": str(e)}), 500
+        return (
+            jsonify(
+                {
+                    "query_id": g.get("query_id"),
+                    "error_type": "internal_error",
+                    "error_detail": str(e),
+                }
+            ),
+            500,
+        )
