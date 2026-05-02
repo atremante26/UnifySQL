@@ -36,7 +36,7 @@ class TranslateRequest(BaseModel):
 
 
 class TranslateResponse(BaseModel):
-    """Response for POST /translate — compiled SQL w/ confidence & optional results."""
+    """Response for POST /translate; compiled SQL with confidence & optional results."""
 
     query_id: UUID
     sql: str
@@ -45,6 +45,7 @@ class TranslateResponse(BaseModel):
     selection_rationale: str
     model_used: str
     semantic_layer_version: str
+    tables_used: List[str]
     result: Optional[QueryResult] = None
 
 
