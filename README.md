@@ -45,6 +45,26 @@ Model-agnostic, warehouse-aware Text-to-SQL pipeline with an automatically const
    poetry run python -c "from sentence_transformers import SentenceTransformer; print('ok')"
    ```
 
+## Running the API
+
+```
+# Start all services
+docker-compose -f docker/docker-compose.yml up
+
+# Or run Flask directly
+poetry run flask --app unifysql.api.app:create_app run
+```
+
+## API Endpoints
+
+```
+POST /schemas                          # Register a warehouse schema (async)
+POST /translate                        # Translate NL question to SQL
+POST /feedback                         # Submit a SQL correction
+GET  /semantic-layer/{schema_id}       # Retrieve semantic layer
+GET  /semantic-layer/{schema_id}/diff  # Diff two semantic layer versions
+```
+
 ## Development
 
 ```
@@ -88,6 +108,7 @@ UnifySQL is split into two paths:
 - Phase 6 complete — DB execution (async Postgres, Snowflake, BigQuery executors with timeout enforcement)
 - Phase 7 complete — feedback loop (correction store with SQLite/Postgres + ChromaDB, similarity retriever with threshold filtering)
 - Phase 8 complete — eval harness (Spider golden set, EX/EM scoring, regression detection, Click CLI)
+- Phase 9 complete — Flask API (schema registration, translation, feedback routes, Docker with Gunicorn)
 
 ## Project Structure
 
@@ -131,6 +152,16 @@ unifysql/
 │   ├── golden_set.json     # 26 curated Spider dev entries across 14 databases
 │   └── harness.py          # run_single, run_eval, Click CLI
 ├── api/                    # Flask API and middleware
+│   ├── app.py              # Flask app factory with blueprint registration
+│   ├── middleware.py       # query_id injection, E2E timeout, request logging
+│   ├── models.py           # Pydantic request/response models
+│   └── routes/
+│       ├── semantic.py     # POST /schemas, GET /semantic-layer routes
+│       ├── translate.py    # POST /translate
+│       └── feedback.py     # POST /feedback
+├── docker/
+│   ├── Dockerfile          # Python 3.11 + Poetry + Gunicorn
+│   └── docker-compose.yml  # App + Postgres + ChromaDB
 ├── exceptions.py           # Custom exceptions
 └── config.py               # Pydantic settings
 ```

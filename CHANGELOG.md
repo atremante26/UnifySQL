@@ -62,3 +62,15 @@
 - run_single, run_eval with EX/EM scoring
 - Click CLI with --dataset, --n, --model, --execute, --compare
 - Regression detection via compare_runs()
+
+### Phase 9 — Flask API
+- Flask app factory with blueprint registration and configure_logging
+- Request middleware with query_id injection, E2E SIGALRM timeout, structlog binding
+- POST /schemas — async schema registration with background offline pipeline
+- POST /translate — full online pipeline with confidence scoring and join trust gating
+- POST /feedback — correction validation, embedding, and storage
+- GET /semantic-layer/{schema_id} — semantic layer retrieval
+- GET /semantic-layer/{schema_id}/diff — version diff
+- Structured error responses with query_id, error_type, error_detail, sql
+- HTTP codes: 200, 202, 400, 422, 503, 504
+- Dockerfile with Gunicorn (4 workers) and docker-compose with Postgres + ChromaDB
