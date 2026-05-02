@@ -16,4 +16,4 @@ RUN poetry config virtualenvs.create false \
 COPY . .
 
 # Run Flask
-CMD ["poetry", "run", "flask", "--app", "unifysql.api.app:create_app", "run", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["poetry", "run", "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "unifysql.api.app:create_app()"]
