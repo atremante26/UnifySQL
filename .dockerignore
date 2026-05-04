@@ -1,0 +1,11 @@
+.git
+.env
+__pycache__
+*.pyc
+.mypy_cache
+.pytest_cache
+benchmarks/
+semantic_layers/
+chroma/
+eval/results/
+.python-version

@@ -1,16 +1,18 @@
 services:
   app:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
-      - "5000:5000"
+      - "5001:5000"
     env_file:
-      - .env
+      - ../.env
     depends_on:
       - postgres
       - chromadb
     volumes:
-      - ./semantic_layers:/app/semantic_layers
-      - ./chroma:/app/chroma
+      - ../semantic_layers:/app/semantic_layers
+      - ../chroma:/app/chroma
 
   postgres:
     image: postgres:15
