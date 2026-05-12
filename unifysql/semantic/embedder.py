@@ -1,8 +1,9 @@
-from typing import Dict, List
+from typing import Dict, List, cast
 from uuid import UUID
 
 import chromadb
 import numpy as np
+from chromadb.api.types import Where
 from sentence_transformers import SentenceTransformer
 
 from unifysql.config import settings
@@ -30,7 +31,17 @@ class SemanticEmbedder:
         to ensure stale embeddings are never matched against.
         """
         # Delete old embeddings for same schema_id
-        self.collection.delete(where={"schema_id": str(schema_id), "type": "table"})
+        self.collection.delete(
+            where=cast(
+                Where,
+                {
+                    "$and": [
+                        {"schema_id": {"$eq": str(schema_id)}},
+                        {"type": {"$eq": "table"}},
+                    ]
+                },
+            )
+        )
         logger.info("old_table_embeddings_deleted")
 
         # Embed tables
