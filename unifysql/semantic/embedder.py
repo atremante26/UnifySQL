@@ -80,7 +80,15 @@ class SemanticEmbedder:
         results = self.collection.query(
             query_embeddings=[question_array],
             n_results=settings.context_top_k_tables,
-            where={"schema_id": str(schema_id), "type": "table"},
+            where=cast(
+                Where,
+                {
+                    "$and": [
+                        {"schema_id": {"$eq": str(schema_id)}},
+                        {"type": {"$eq": "table"}},
+                    ]
+                },
+            ),
         )
 
         metadatas = results["metadatas"]
