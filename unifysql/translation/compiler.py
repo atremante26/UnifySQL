@@ -16,8 +16,9 @@ class Compiler:
         """Transpiles raw SQL to the target dialect using SQLGlot."""
 
         # Update query if preview is True
+        sql = sql.strip().rstrip(";")
         if preview:
-            sql += f" LIMIT {settings.preview_default_limit}"
+            sql = f"{sql} LIMIT {settings.preview_default_limit}"
 
         # Initialize return values
         result: str = ""
