@@ -72,11 +72,12 @@ class FeedbackStore:
             )
             session.add(record)
             session.commit()
+            correction_id = record.id
             log_correction_stored(correction_record)
 
         # Save embedding to ChromaDB
         self.collection.add(
-            ids=[record.id],
+            ids=[correction_id],
             embeddings=[np.array(correction_record.embedding_vector)],
             metadatas=[
                 {
@@ -90,11 +91,11 @@ class FeedbackStore:
         )
         logger.info(
             "embedding_stored",
-            correction_id=record.id,
+            correction_id=correction_id,
             schema_id=str(correction_record.correction.schema_id),
         )
 
-        return record.id
+        return correction_id
 
     def get_by_id(self, correction_id: str) -> Optional[CorrectionRecordORM]:
         """Retrieves a `CorrectionRecordORM` by its primary key."""
