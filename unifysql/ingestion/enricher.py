@@ -27,24 +27,30 @@ class MetadataEnricher:
         try:
             with self.engine.connect() as connection:
                 for i, table in enumerate(self.schema):
+                    # Strip table name
+                    table_name = table.name.strip('"')
+
                     # Row count
                     row_count = connection.execute(
-                        text(f"SELECT COUNT(*) FROM {table.name}")
+                        text(f'SELECT COUNT(*) FROM "{table_name}"')
                     ).scalar()
 
                     updated_columns = []
                     for col in table.columns:
+                        # Strip column name
+                        column_name = col.name.strip('"')
+
                         # Sample values
                         result = connection.execute(
-                            text(f"SELECT {col.name} FROM {table.name} LIMIT 10")
+                            text(f'SELECT "{column_name}" FROM "{table_name}" LIMIT 10')
                         )
                         sample_values = [str(row[0]) for row in result.fetchall()]
 
                         # Null rate
                         null_count = connection.execute(
                             text(
-                                f"SELECT COUNT(*) FROM {table.name} "
-                                f"WHERE {col.name} IS NULL"
+                                f'SELECT COUNT(*) FROM "{table_name}" '
+                                f'WHERE "{column_name}" IS NULL'
                             )
                         ).scalar()
                         null_rate = (
