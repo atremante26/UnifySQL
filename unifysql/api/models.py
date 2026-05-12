@@ -30,6 +30,7 @@ class TranslateRequest(BaseModel):
     question: str
     schema_id: UUID
     dialect: str
+    connection_string: Optional[str] = None
     model_preference: Optional[str] = None
     execute: bool = False
     preview: bool = True

@@ -154,15 +154,14 @@ def translate_question() -> Tuple[Response, int]:
         if req.execute:
             executor: BaseExecutor
             if req.dialect.lower() == "postgres":
-                executor = PostgresExecutor(
-                    connection_string=str(settings.postgres_url)
-                )
+                conn_str = req.connection_string or str(settings.postgres_url)
+                executor = PostgresExecutor(connection_string=conn_str)
             elif req.dialect.lower() == "snowflake":
-                executor = SnowflakeExecutor(
-                    connection_string=str(settings.snowflake_dsn)
-                )
+                conn_str = req.connection_string or str(settings.snowflake_dsn)
+                executor = SnowflakeExecutor(connection_string=conn_str)
             else:
-                executor = BigQueryExecutor(connection_string=str(settings.bq_project))
+                conn_str = req.connection_string or str(settings.bq_project)
+                executor = BigQueryExecutor(connection_string=conn_str)
 
             sql_result = asyncio.run(executor.execute(compiler_result.sql))
             logger.info(
