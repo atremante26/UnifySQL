@@ -27,7 +27,7 @@
     "question_id": "spider_dev_004",
     "question": "What are the distinct battle names which are between bulgarian commander 'Kaloyan' and latin commander 'Baldwin I'?",
     "gold_sql": "SELECT name FROM battle WHERE bulgarian_commander  =  'Kaloyan' AND latin_commander  =  'Baldwin I'",
-    "schema_id": "63e75757-6225-4fee-8b38-cd13b16778ea",
+    "schema_id": "3ff7d2ef-8d3b-45d7-a32b-01365924dfb1",
     "db_id": "battle_death",
     "dialect": "postgres"
   },
@@ -35,7 +35,7 @@
     "question_id": "spider_dev_005",
     "question": "List the first and last name of all players who are left / L hand in the order of birth date.",
     "gold_sql": "SELECT first_name ,  last_name FROM players WHERE hand  =  'L' ORDER BY birth_date",
-    "schema_id": "da9c07e2-c9b0-4d25-a6bd-6996a06b3da9",
+    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -59,7 +59,7 @@
     "question_id": "spider_dev_008",
     "question": "What are the ids and names of all countries that either have more than 3 car makers or produce fiat model ?",
     "gold_sql": "select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  3 union select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country join model_list as t3 on t2.id  =  t3.maker where t3.model  =  'fiat';",
-    "schema_id": "6dcbdb44-7b7f-4f50-a4a3-2d879cb30427",
+    "schema_id": "70ebabfd-ee4f-48bb-bd1b-e84fd8a0e0b8",
     "db_id": "car_1",
     "dialect": "postgres"
   },
@@ -99,7 +99,7 @@
     "question_id": "spider_dev_013",
     "question": "List the names of all winners who played in both 2013 and 2016.",
     "gold_sql": "SELECT winner_name FROM matches WHERE YEAR  =  2013 INTERSECT SELECT winner_name FROM matches WHERE YEAR  =  2016",
-    "schema_id": "da9c07e2-c9b0-4d25-a6bd-6996a06b3da9",
+    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -107,7 +107,7 @@
     "question_id": "spider_dev_014",
     "question": "What is the code of the country with the most players?",
     "gold_sql": "SELECT country_code FROM players GROUP BY country_code ORDER BY count(*) DESC LIMIT 1",
-    "schema_id": "da9c07e2-c9b0-4d25-a6bd-6996a06b3da9",
+    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -131,7 +131,7 @@
     "question_id": "spider_dev_017",
     "question": "Count the number of orchestras that have CD or DVD as their record format.",
     "gold_sql": "SELECT COUNT(*) FROM orchestra WHERE Major_Record_Format  =  \"CD\" OR Major_Record_Format  =  \"DVD\"",
-    "schema_id": "8882dd68-c84a-49ee-9b51-8e8d4bcf1781",
+    "schema_id": "8e6a8dad-a338-482c-8d80-2b49204bdd15",
     "db_id": "orchestra",
     "dialect": "postgres"
   },
@@ -139,7 +139,7 @@
     "question_id": "spider_dev_018",
     "question": "What are the country code and first name of the players who won in both tourney WTA Championships and Australian Open?",
     "gold_sql": "SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'WTA Championships' INTERSECT SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'Australian Open'",
-    "schema_id": "da9c07e2-c9b0-4d25-a6bd-6996a06b3da9",
+    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -171,7 +171,7 @@
     "question_id": "spider_dev_022",
     "question": "Count the number of templates of the type CV.",
     "gold_sql": "SELECT count(*) FROM Templates WHERE template_type_code  =  \"CV\"",
-    "schema_id": "dc452d8d-7fb8-4e2e-b042-9674c1069e06",
+    "schema_id": "bd60b77e-e0c4-4acc-a6ee-7c5363fe26c4",
     "db_id": "cre_Doc_Template_Mgt",
     "dialect": "postgres"
   },
@@ -187,7 +187,7 @@
     "question_id": "spider_dev_024",
     "question": "What are the number of votes from state 'NY' or 'CA'?",
     "gold_sql": "SELECT count(*) FROM votes WHERE state  =  'NY' OR state  =  'CA'",
-    "schema_id": "026acaa4-7a73-48eb-a7c2-c3d2e132a8f6",
+    "schema_id": "1174e00f-c2ea-49f9-a1b6-729bbeeab11b",
     "db_id": "voter_1",
     "dialect": "postgres"
   },
@@ -195,7 +195,7 @@
     "question_id": "spider_dev_025",
     "question": "Count the number of templates.",
     "gold_sql": "SELECT count(*) FROM Templates",
-    "schema_id": "dc452d8d-7fb8-4e2e-b042-9674c1069e06",
+    "schema_id": "bd60b77e-e0c4-4acc-a6ee-7c5363fe26c4",
     "db_id": "cre_Doc_Template_Mgt",
     "dialect": "postgres"
   },
@@ -203,7 +203,7 @@
     "question_id": "spider_dev_026",
     "question": "What is the best rank of losers across all matches?",
     "gold_sql": "SELECT min(loser_rank) FROM matches",
-    "schema_id": "da9c07e2-c9b0-4d25-a6bd-6996a06b3da9",
+    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
     "db_id": "wta_1",
     "dialect": "postgres"
   }
