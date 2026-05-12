@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, cast
 from uuid import UUID
 
 import numpy as np
+from chromadb.api.types import Where
 from sentence_transformers import SentenceTransformer
 
 from unifysql.config import settings
@@ -50,7 +51,15 @@ class FeedbackRetriever:
         results = self.collection.query(
             query_embeddings=[embedded_question],
             n_results=settings.correction_top_k,
-            where={"schema_id": str(schema_id), "type": "correction"},
+            where=cast(
+                Where,
+                {
+                    "$and": [
+                        {"schema_id": {"$eq": str(schema_id)}},
+                        {"type": {"$eq": "correction"}},
+                    ]
+                },
+            ),
             include=["metadatas", "distances"],
         )
         logger.info("correction_embeddings_queried", n_results=len(results["ids"][0]))
