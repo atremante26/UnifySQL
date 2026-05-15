@@ -1,6 +1,8 @@
 import asyncio
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Dict, List
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import asyncpg
 
@@ -12,6 +14,17 @@ from unifysql.semantic.models import QueryResult, WarehouseType
 
 # Instantiate logger
 logger = get_logger()
+
+
+def _normalize_value(val: Any) -> Any:
+    """Converts asyncpg return types to JSON-safe Python primitives."""
+    if isinstance(val, (datetime, date)):
+        return val.isoformat()
+    if isinstance(val, Decimal):
+        return float(val)
+    if isinstance(val, UUID):
+        return str(val)
+    return val
 
 
 class PostgresExecutor(BaseExecutor):
@@ -46,7 +59,10 @@ class PostgresExecutor(BaseExecutor):
         # Format records
         if records:
             columns = records[0].keys()
-            result_set = {col: [dict(r)[col] for r in records] for col in columns}
+            result_set = {
+                col: [_normalize_value(dict(r)[col]) for r in records]
+                for col in columns
+            }
 
         # Return QueryResult
         return QueryResult(
