@@ -4,11 +4,11 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
+from dotenv import load_dotenv
 
-from unifysql.config import settings
 from unifysql.eval.golden import (
     EvalResult,
     GoldenEntry,
@@ -26,8 +26,44 @@ from unifysql.translation.context_builder import ContextBuilder
 from unifysql.translation.translator import Translator
 from unifysql.translation.validator import Validator
 
+load_dotenv()
+
 # Instantiate logger
 logger = get_logger()
+
+# Spider Golden Evaluation
+SPIDER_CONNECTION_STRINGS = {
+    "battle_death": "postgresql://postgres:postgres@localhost:5432/spider_battle_death",
+    "car_1": "postgresql://postgres:postgres@localhost:5432/spider_car_1",
+    "concert_singer": "postgresql://postgres:postgres@localhost:5432/spider_concert_singer",
+    "course_teach": "postgresql://postgres:postgres@localhost:5432/spider_course_teach",
+    "cre_Doc_Template_Mgt": "postgresql://postgres:postgres@localhost:5432/spider_cre_doc_template_mgt",
+    "dog_kennels": "postgresql://postgres:postgres@localhost:5432/spider_dog_kennels",
+    "employee_hire_evaluation": "postgresql://postgres:postgres@localhost:5432/spider_employee_hire_evaluation",
+    "flight_2": "postgresql://postgres:postgres@localhost:5432/spider_flight_2",
+    "network_1": "postgresql://postgres:postgres@localhost:5432/spider_network_1",
+    "orchestra": "postgresql://postgres:postgres@localhost:5432/spider_orchestra",
+    "pets_1": "postgresql://postgres:postgres@localhost:5432/spider_pets_1",
+    "student_transcripts_tracking": "postgresql://postgres:postgres@localhost:5432/spider_student_transcripts_tracking",
+    "voter_1": "postgresql://postgres:postgres@localhost:5432/spider_voter_1",
+    "wta_1": "postgresql://postgres:postgres@localhost:5432/spider_wta_1",
+}
+
+
+def _hash_result_set(result_set: Dict[str, List[Any]]) -> str:
+    """
+    Canonically hashes a result set for EX comparison.
+    Reconstructs rows from column-oriented format, sorts them,
+    and hashes to handle row order differences between queries.
+    """
+    columns = list(result_set.keys())
+    rows = (
+        [sorted(zip(columns, row_values)) for row_values in zip(*result_set.values())]
+        if result_set
+        else []
+    )
+    rows.sort()
+    return hashlib.md5(json.dumps(rows, sort_keys=True).encode()).hexdigest()
 
 
 async def run_single(
@@ -69,6 +105,7 @@ async def run_single(
             )
 
             # Translate
+            exec_preview = False if execute else preview
             translator = Translator(model_name=model_name)
             generated_sql = translator.translate(
                 context=context_result,
@@ -78,17 +115,14 @@ async def run_single(
                     dialect=entry.dialect,
                     model_preference=None,
                     execute=execute,
-                    preview=preview,
+                    preview=exec_preview,
                 ),
             )
 
             # Compile
             compiler = Compiler()
             generated_compiled = compiler.compile(
-                sql=generated_sql, dialect=entry.dialect, preview=preview
-            )
-            gold_compiled = compiler.compile(
-                sql=entry.gold_sql, dialect=entry.dialect, preview=preview
+                sql=generated_sql, dialect=entry.dialect, preview=exec_preview
             )
 
             # Validate
@@ -97,24 +131,32 @@ async def run_single(
                 sql=generated_compiled.sql, semantic_layer=semantic_layer
             )
 
+            if not generated_validated.valid:
+                logger.warning(
+                    "eval_validation_failed",
+                    question_id=entry.question_id,
+                    error_type=generated_validated.error_type,
+                )
+
             # Compute EM
-            em = compute_em(entry.gold_sql, generated_compiled.sql)
+            em = compute_em(entry.gold_sql, generated_compiled.sql, entry.dialect)
 
             # Compute EX
             ex = False
             result_hash = None
-            if execute and generated_validated.valid and settings.postgres_url:
-                executor = PostgresExecutor(connection_string=settings.postgres_url)
+            if (
+                execute
+                and generated_validated.valid
+                and entry.db_id in SPIDER_CONNECTION_STRINGS
+            ):
+                conn_str = SPIDER_CONNECTION_STRINGS[entry.db_id]
+                executor = PostgresExecutor(connection_string=conn_str)
                 gen_result = await executor.execute(generated_compiled.sql)
-                gold_result = await executor.execute(gold_compiled.sql)
+                gold_result = await executor.execute(entry.gold_sql.strip().rstrip(";"))
 
-                # Hash result sets for comparison
-                gen_hash = hashlib.md5(
-                    json.dumps(gen_result.result_set, sort_keys=True).encode()
-                ).hexdigest()
-                gold_hash = hashlib.md5(
-                    json.dumps(gold_result.result_set, sort_keys=True).encode()
-                ).hexdigest()
+                # Hash result sets and compare
+                gen_hash = _hash_result_set(result_set=gen_result.result_set)
+                gold_hash = _hash_result_set(result_set=gold_result.result_set)
                 ex = gen_hash == gold_hash
                 result_hash = gen_hash
 
