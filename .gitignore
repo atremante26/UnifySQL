@@ -51,7 +51,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-tests/
 
 # Translations
 *.mo
@@ -222,5 +221,5 @@ chroma/
 .DS_Store
 
 # Results
-eval/
+/eval/
 feedback.db
