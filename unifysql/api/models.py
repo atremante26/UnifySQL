@@ -23,6 +23,13 @@ class SchemaRegistrationResponse(BaseModel):
     semantic_layer_version: Optional[str] = None
 
 
+class SchemaRefreshRequest(BaseModel):
+    """Request body for POST /schemas/{schema_id}/refresh."""
+
+    connection_string: str
+    model_preference: Optional[str] = None
+
+
 # Translation Models
 class TranslateRequest(BaseModel):
     """Request body for POST /translate — translates a NL question to SQL."""
