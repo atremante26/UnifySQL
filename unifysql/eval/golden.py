@@ -1,8 +1,11 @@
 import json
+import re
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
+import sqlglot
+import sqlglot.expressions as exp
 from pydantic import BaseModel
 
 
@@ -58,22 +61,77 @@ def load_golden_set(path: str = "unifysql/eval/golden_set.json") -> List[GoldenE
     return [GoldenEntry.model_validate(entry) for entry in data]
 
 
-def compute_em(gold_sql: str, gen_sql: str) -> bool:
-    """Computes exact match between gold and generated SQL."""
+def compute_em(gold_sql: str, gen_sql: str, dialect: str) -> bool:
+    """
+    Computes exact match between gold and generated SQL.
+
+    Normalizes via SQLGlot AST: lowercases identifiers and keywords but
+    preserves string literal casing, since 'Aberdeen' != 'aberdeen' in
+    case-sensitive Postgres comparisons. Falls back to whitespace
+    normalization if parsing fails.
+    """
 
     def normalize(sql: str) -> str:
-        return " ".join(sql.lower().strip().split())
+        try:
+            parsed = sqlglot.parse_one(sql, dialect=dialect)
+
+            # Remove LIMIT node to make gold/gen comparable
+            for limit in parsed.find_all(exp.Limit):
+                limit.pop()
+
+            # Lowercase identifier names only — walk the AST and mutate
+            # Identifier nodes in-place; string literals (exp.Literal where
+            # is_string=True) are left untouched.
+            for identifier in parsed.find_all(exp.Identifier):
+                identifier.set("this", identifier.name.lower())
+
+            # Regenerate SQL; keywords are already uppercased by SQLGlot,
+            # then lower the whole output except content inside single quotes.
+            raw = parsed.sql(dialect=dialect, pretty=False)
+            return _lowercase_outside_literals(raw).strip()
+
+        except Exception:
+            # Safe fallback: whitespace normalisation only, no casing changes
+            sql = sql.strip().rstrip(";")
+            sql = re.sub(r"\s+limit\s+\d+\s*$", "", sql, flags=re.IGNORECASE).strip()
+            return " ".join(sql.split())
 
     return normalize(gold_sql) == normalize(gen_sql)
 
 
+def _lowercase_outside_literals(sql: str) -> str:
+    """
+    Lowercases all characters in `sql` that are NOT inside single-quoted
+    string literals. This keeps keyword and identifier casing consistent
+    for EM comparison while preserving literal values like 'Aberdeen'.
+    """
+    result = []
+    in_literal = False
+    i = 0
+    while i < len(sql):
+        ch = sql[i]
+        if ch == "'" and not in_literal:
+            in_literal = True
+            result.append(ch)
+        elif ch == "'" and in_literal:
+            # Handle escaped single quote ('')
+            if i + 1 < len(sql) and sql[i + 1] == "'":
+                result.append("''")
+                i += 2
+                continue
+            in_literal = False
+            result.append(ch)
+        else:
+            result.append(ch if in_literal else ch.lower())
+        i += 1
+    return "".join(result)
+
+
 def compare_runs(run_a: List[EvalResult], run_b: List[EvalResult]) -> RegressionReport:
     """Compares two eval runs and returns a regression report."""
-    # Build lookup dicts
     run_a_map = {r.question_id: r for r in run_a}
     run_b_map = {r.question_id: r for r in run_b}
 
-    # Find common questions
     common_ids = set(run_a_map.keys()) & set(run_b_map.keys())
 
     regressed = []
@@ -88,7 +146,6 @@ def compare_runs(run_a: List[EvalResult], run_b: List[EvalResult]) -> Regression
         elif not a.ex and b.ex:
             improved.append(qid)
 
-    # Compute overall EX/EM scores
     run_a_ex = sum(r.ex for r in run_a) / len(run_a) if run_a else 0.0
     run_b_ex = sum(r.ex for r in run_b) / len(run_b) if run_b else 0.0
     run_a_em = sum(r.em for r in run_a) / len(run_a) if run_a else 0.0

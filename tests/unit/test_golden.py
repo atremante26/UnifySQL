@@ -39,16 +39,16 @@ def test_compute_em() -> None:
     sql3 = "SELECT  id  FROM table;"
 
     # Test identical SQL
-    assert compute_em(sql1, sql1)
+    assert compute_em(sql1, sql1, dialect="postgres")
 
     # Test different SQL
-    assert not compute_em(sql1, sql2)
+    assert not compute_em(sql1, sql2, dialect="postgres")
 
     # Test case insensitive
-    assert compute_em(sql1, sql1.lower())
+    assert compute_em(sql1, sql1.lower(), dialect="postgres")
 
     # Test extra whitespace
-    assert compute_em(sql1, sql3)
+    assert compute_em(sql1, sql3, dialect="postgres")
 
 
 def test_compare_runs() -> None:
