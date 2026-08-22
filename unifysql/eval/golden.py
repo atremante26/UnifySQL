@@ -84,6 +84,7 @@ def compute_em(gold_sql: str, gen_sql: str, dialect: str) -> bool:
             # is_string=True) are left untouched.
             for identifier in parsed.find_all(exp.Identifier):
                 identifier.set("this", identifier.name.lower())
+                identifier.set("quoted", False)
 
             # Regenerate SQL; keywords are already uppercased by SQLGlot,
             # then lower the whole output except content inside single quotes.

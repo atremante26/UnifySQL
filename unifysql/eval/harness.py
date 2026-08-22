@@ -61,13 +61,8 @@ def _hash_result_set(result_set: Dict[str, List[Any]]) -> str:
     Reconstructs rows from column-oriented format, sorts them,
     and hashes to handle row order differences between queries.
     """
-    columns = list(result_set.keys())
-    rows = (
-        [sorted(zip(columns, row_values)) for row_values in zip(*result_set.values())]
-        if result_set
-        else []
-    )
-    rows.sort()
+    rows = [list(row_values) for row_values in zip(*result_set.values())]
+    rows.sort(key=lambda r: json.dumps(r, sort_keys=True))
     return hashlib.md5(json.dumps(rows, sort_keys=True).encode()).hexdigest()
 
 
