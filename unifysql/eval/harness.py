@@ -1,12 +1,17 @@
+import os
+
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
 import asyncio
 import hashlib
 import json
-import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import click
+import sqlglot
 from dotenv import load_dotenv
 
 from unifysql.eval.golden import (
@@ -33,20 +38,20 @@ logger = get_logger()
 
 # Spider Golden Evaluation
 SPIDER_CONNECTION_STRINGS = {
-    "battle_death": "postgresql://postgres:postgres@localhost:5432/spider_battle_death",
-    "car_1": "postgresql://postgres:postgres@localhost:5432/spider_car_1",
-    "concert_singer": "postgresql://postgres:postgres@localhost:5432/spider_concert_singer",
-    "course_teach": "postgresql://postgres:postgres@localhost:5432/spider_course_teach",
-    "cre_Doc_Template_Mgt": "postgresql://postgres:postgres@localhost:5432/spider_cre_doc_template_mgt",
-    "dog_kennels": "postgresql://postgres:postgres@localhost:5432/spider_dog_kennels",
-    "employee_hire_evaluation": "postgresql://postgres:postgres@localhost:5432/spider_employee_hire_evaluation",
-    "flight_2": "postgresql://postgres:postgres@localhost:5432/spider_flight_2",
-    "network_1": "postgresql://postgres:postgres@localhost:5432/spider_network_1",
-    "orchestra": "postgresql://postgres:postgres@localhost:5432/spider_orchestra",
-    "pets_1": "postgresql://postgres:postgres@localhost:5432/spider_pets_1",
-    "student_transcripts_tracking": "postgresql://postgres:postgres@localhost:5432/spider_student_transcripts_tracking",
-    "voter_1": "postgresql://postgres:postgres@localhost:5432/spider_voter_1",
-    "wta_1": "postgresql://postgres:postgres@localhost:5432/spider_wta_1",
+    "battle_death": "postgresql://postgres:postgres@localhost:5433/spider_battle_death",
+    "concert_singer": "postgresql://postgres:postgres@localhost:5433/spider_concert_singer",
+    "course_teach": "postgresql://postgres:postgres@localhost:5433/spider_course_teach",
+    "cre_Doc_Template_Mgt": "postgresql://postgres:postgres@localhost:5433/spider_cre_doc_template_mgt",
+    "dog_kennels": "postgresql://postgres:postgres@localhost:5433/spider_dog_kennels",
+    "employee_hire_evaluation": "postgresql://postgres:postgres@localhost:5433/spider_employee_hire_evaluation",
+    "flight_2": "postgresql://postgres:postgres@localhost:5433/spider_flight_2",
+    "network_1": "postgresql://postgres:postgres@localhost:5433/spider_network_1",
+    "orchestra": "postgresql://postgres:postgres@localhost:5433/spider_orchestra",
+    "pets_1": "postgresql://postgres:postgres@localhost:5433/spider_pets_1",
+    "singer": "postgresql://postgres:postgres@localhost:5433/spider_singer",
+    "student_transcripts_tracking": "postgresql://postgres:postgres@localhost:5433/spider_student_transcripts_tracking",
+    "voter_1": "postgresql://postgres:postgres@localhost:5433/spider_voter_1",
+    "wta_1": "postgresql://postgres:postgres@localhost:5433/spider_wta_1",
 }
 
 
@@ -66,10 +71,26 @@ def _hash_result_set(result_set: Dict[str, List[Any]]) -> str:
     return hashlib.md5(json.dumps(rows, sort_keys=True).encode()).hexdigest()
 
 
+def _normalize_gold_sql(sql: str) -> str:
+    """
+    Normalizes Spider gold SQL for Postgres execution.
+    """
+    sql = sql.replace('"', "'")
+    return (
+        sqlglot.transpile(sql=sql, read="sqlite", write="postgres")[0]
+        .strip()
+        .rstrip(";")
+    )
+
+
 async def run_single(
     entry: GoldenEntry,
-    model_name: Optional[str],
     run_id: str,
+    store: SemanticLayerStore,
+    context_builder: ContextBuilder,
+    translator: Translator,
+    compiler: Compiler,
+    validator: Validator,
     execute: bool = False,
     preview: bool = True,
 ) -> EvalResult:
@@ -94,11 +115,9 @@ async def run_single(
     try:
         with Span("eval_single") as span:
             # Load semantic layer
-            store = SemanticLayerStore()
             semantic_layer = store.load_by_schema_id(schema_id=entry.schema_id)
 
             # Build context
-            context_builder = ContextBuilder(model_name=model_name)
             context_result = context_builder.build_context(
                 question=entry.question,
                 schema_id=entry.schema_id,
@@ -106,7 +125,6 @@ async def run_single(
 
             # Translate
             exec_preview = False if execute else preview
-            translator = Translator(model_name=model_name)
             generated_sql = translator.translate(
                 context=context_result,
                 request=TranslationRequest(
@@ -120,13 +138,11 @@ async def run_single(
             )
 
             # Compile
-            compiler = Compiler()
             generated_compiled = compiler.compile(
                 sql=generated_sql, dialect=entry.dialect, preview=exec_preview
             )
 
             # Validate
-            validator = Validator()
             generated_validated = validator.validate(
                 sql=generated_compiled.sql, semantic_layer=semantic_layer
             )
@@ -152,7 +168,9 @@ async def run_single(
                 conn_str = SPIDER_CONNECTION_STRINGS[entry.db_id]
                 executor = PostgresExecutor(connection_string=conn_str)
                 gen_result = await executor.execute(generated_compiled.sql)
-                gold_result = await executor.execute(entry.gold_sql.strip().rstrip(";"))
+                gold_result = await executor.execute(
+                    _normalize_gold_sql(entry.gold_sql)
+                )
 
                 # Hash result sets and compare
                 gen_hash = _hash_result_set(result_set=gen_result.result_set)
@@ -207,12 +225,21 @@ async def run_eval(
     """
     run_id = str(uuid.uuid4())
     results = []
+    store = SemanticLayerStore()
+    context_builder = ContextBuilder(model_name=model_name)
+    translator = Translator(model_name=model_name)
+    compiler = Compiler()
+    validator = Validator()
 
     for entry in entries:
         result = await run_single(
             entry=entry,
-            model_name=model_name,
             run_id=run_id,
+            store=store,
+            context_builder=context_builder,
+            translator=translator,
+            compiler=compiler,
+            validator=validator,
             execute=execute,
             preview=preview,
         )
