@@ -3,7 +3,7 @@
     "question_id": "spider_dev_001",
     "question": "Give the code of the airport with the least flights.",
     "gold_sql": "SELECT T1.AirportCode FROM AIRPORTS AS T1 JOIN FLIGHTS AS T2 ON T1.AirportCode  =  T2.DestAirport OR T1.AirportCode  =  T2.SourceAirport GROUP BY T1.AirportCode ORDER BY count(*) LIMIT 1",
-    "schema_id": "c0e967d0-381f-4f7a-ad86-6d54098f976f",
+    "schema_id": "654b9fdc-30d5-4b08-96a6-b9665d0eb9eb",
     "db_id": "flight_2",
     "dialect": "postgres"
   },
@@ -11,23 +11,23 @@
     "question_id": "spider_dev_002",
     "question": "Find number of pets owned by students who are older than 20.",
     "gold_sql": "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid WHERE T1.age  >  20",
-    "schema_id": "da06d3ca-003f-48eb-b5a8-700044cedcf2",
+    "schema_id": "dc7eebec-774e-40bb-b4c9-93dd93a1abef",
     "db_id": "pets_1",
     "dialect": "postgres"
   },
   {
     "question_id": "spider_dev_003",
-    "question": "On average, when were the transcripts printed?",
-    "gold_sql": "SELECT avg(transcript_date) FROM Transcripts",
-    "schema_id": "ec72afd4-babc-4f75-883a-bb7eb3f26aae",
-    "db_id": "student_transcripts_tracking",
+    "question": "List the name of singers whose citizenship is not \"France\".",
+    "gold_sql": "SELECT Name FROM singer WHERE Citizenship != \"France\"",
+    "schema_id": "aa655f68-54c7-4464-92e8-ce87b7891e72",
+    "db_id": "singer",
     "dialect": "postgres"
   },
   {
     "question_id": "spider_dev_004",
     "question": "What are the distinct battle names which are between bulgarian commander 'Kaloyan' and latin commander 'Baldwin I'?",
     "gold_sql": "SELECT name FROM battle WHERE bulgarian_commander  =  'Kaloyan' AND latin_commander  =  'Baldwin I'",
-    "schema_id": "3ff7d2ef-8d3b-45d7-a32b-01365924dfb1",
+    "schema_id": "48a348b4-5a6b-4ec1-b949-1fbe9ebf2f1f",
     "db_id": "battle_death",
     "dialect": "postgres"
   },
@@ -35,7 +35,7 @@
     "question_id": "spider_dev_005",
     "question": "List the first and last name of all players who are left / L hand in the order of birth date.",
     "gold_sql": "SELECT first_name ,  last_name FROM players WHERE hand  =  'L' ORDER BY birth_date",
-    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
+    "schema_id": "634c6177-bc4d-4596-9c6d-a2e011953ed4",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -43,7 +43,7 @@
     "question_id": "spider_dev_006",
     "question": "Find the name of the shops that do not hire any employee.",
     "gold_sql": "SELECT name FROM shop WHERE shop_id NOT IN (SELECT shop_id FROM hiring)",
-    "schema_id": "46fba09f-2a6e-4ce9-b11e-488cf0ec534c",
+    "schema_id": "266f5cba-6ab6-4d3d-9add-eeaec62ee4ca",
     "db_id": "employee_hire_evaluation",
     "dialect": "postgres"
   },
@@ -51,23 +51,15 @@
     "question_id": "spider_dev_007",
     "question": "How many flights arriving in Aberdeen city?",
     "gold_sql": "SELECT count(*) FROM FLIGHTS AS T1 JOIN AIRPORTS AS T2 ON T1.DestAirport  =  T2.AirportCode WHERE T2.City  =  \"Aberdeen\"",
-    "schema_id": "c0e967d0-381f-4f7a-ad86-6d54098f976f",
+    "schema_id": "654b9fdc-30d5-4b08-96a6-b9665d0eb9eb",
     "db_id": "flight_2",
-    "dialect": "postgres"
-  },
-  {
-    "question_id": "spider_dev_008",
-    "question": "What are the ids and names of all countries that either have more than 3 car makers or produce fiat model ?",
-    "gold_sql": "select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  3 union select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country join model_list as t3 on t2.id  =  t3.maker where t3.model  =  'fiat';",
-    "schema_id": "70ebabfd-ee4f-48bb-bd1b-e84fd8a0e0b8",
-    "db_id": "car_1",
     "dialect": "postgres"
   },
   {
     "question_id": "spider_dev_009",
     "question": "Show the names and grades of each high schooler.",
     "gold_sql": "SELECT name ,  grade FROM Highschooler",
-    "schema_id": "bb61470c-470d-40bc-a235-905f340b3b82",
+    "schema_id": "28df89a6-720b-4a2b-b862-fe432c4daf4a",
     "db_id": "network_1",
     "dialect": "postgres"
   },
@@ -75,7 +67,7 @@
     "question_id": "spider_dev_010",
     "question": "Find the first name and age of students who have a dog but do not have a cat as a pet.",
     "gold_sql": "SELECT T1.fname ,  T1.age FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'dog' AND T1.stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')",
-    "schema_id": "da06d3ca-003f-48eb-b5a8-700044cedcf2",
+    "schema_id": "dc7eebec-774e-40bb-b4c9-93dd93a1abef",
     "db_id": "pets_1",
     "dialect": "postgres"
   },
@@ -83,7 +75,7 @@
     "question_id": "spider_dev_011",
     "question": "Find the major and age of students who do not have a cat pet.",
     "gold_sql": "SELECT major ,  age FROM student WHERE stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')",
-    "schema_id": "da06d3ca-003f-48eb-b5a8-700044cedcf2",
+    "schema_id": "dc7eebec-774e-40bb-b4c9-93dd93a1abef",
     "db_id": "pets_1",
     "dialect": "postgres"
   },
@@ -91,7 +83,7 @@
     "question_id": "spider_dev_012",
     "question": "How many flights do we have?",
     "gold_sql": "SELECT count(*) FROM FLIGHTS",
-    "schema_id": "c0e967d0-381f-4f7a-ad86-6d54098f976f",
+    "schema_id": "654b9fdc-30d5-4b08-96a6-b9665d0eb9eb",
     "db_id": "flight_2",
     "dialect": "postgres"
   },
@@ -99,7 +91,7 @@
     "question_id": "spider_dev_013",
     "question": "List the names of all winners who played in both 2013 and 2016.",
     "gold_sql": "SELECT winner_name FROM matches WHERE YEAR  =  2013 INTERSECT SELECT winner_name FROM matches WHERE YEAR  =  2016",
-    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
+    "schema_id": "634c6177-bc4d-4596-9c6d-a2e011953ed4",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -107,7 +99,7 @@
     "question_id": "spider_dev_014",
     "question": "What is the code of the country with the most players?",
     "gold_sql": "SELECT country_code FROM players GROUP BY country_code ORDER BY count(*) DESC LIMIT 1",
-    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
+    "schema_id": "634c6177-bc4d-4596-9c6d-a2e011953ed4",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -115,7 +107,7 @@
     "question_id": "spider_dev_015",
     "question": "How many dog pets are raised by female students?",
     "gold_sql": "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T2.petid  =  T3.petid WHERE T1.sex  =  'F' AND T3.pettype  =  'dog'",
-    "schema_id": "da06d3ca-003f-48eb-b5a8-700044cedcf2",
+    "schema_id": "dc7eebec-774e-40bb-b4c9-93dd93a1abef",
     "db_id": "pets_1",
     "dialect": "postgres"
   },
@@ -123,7 +115,7 @@
     "question_id": "spider_dev_016",
     "question": "Show names of teachers that teach at least two courses.",
     "gold_sql": "SELECT T2.Name FROM course_arrange AS T1 JOIN teacher AS T2 ON T1.Teacher_ID  =  T2.Teacher_ID GROUP BY T2.Name HAVING COUNT(*)  >=  2",
-    "schema_id": "59e3a4e5-46b8-4de0-8a6a-e5cebafc8f86",
+    "schema_id": "b1a6f4ce-38fa-4602-b5aa-e065c38a21a5",
     "db_id": "course_teach",
     "dialect": "postgres"
   },
@@ -131,7 +123,7 @@
     "question_id": "spider_dev_017",
     "question": "Count the number of orchestras that have CD or DVD as their record format.",
     "gold_sql": "SELECT COUNT(*) FROM orchestra WHERE Major_Record_Format  =  \"CD\" OR Major_Record_Format  =  \"DVD\"",
-    "schema_id": "8e6a8dad-a338-482c-8d80-2b49204bdd15",
+    "schema_id": "bb5d9875-c446-4a26-803c-f8c2589e680e",
     "db_id": "orchestra",
     "dialect": "postgres"
   },
@@ -139,7 +131,7 @@
     "question_id": "spider_dev_018",
     "question": "What are the country code and first name of the players who won in both tourney WTA Championships and Australian Open?",
     "gold_sql": "SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'WTA Championships' INTERSECT SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'Australian Open'",
-    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
+    "schema_id": "634c6177-bc4d-4596-9c6d-a2e011953ed4",
     "db_id": "wta_1",
     "dialect": "postgres"
   },
@@ -147,7 +139,7 @@
     "question_id": "spider_dev_019",
     "question": "Find the states where both owners and professionals live.",
     "gold_sql": "SELECT state FROM Owners INTERSECT SELECT state FROM Professionals",
-    "schema_id": "e0adab65-9029-4e3c-9c83-72072a64090b",
+    "schema_id": "8d7e10da-a4a3-41cc-93e0-d35419f44745",
     "db_id": "dog_kennels",
     "dialect": "postgres"
   },
@@ -155,7 +147,7 @@
     "question_id": "spider_dev_020",
     "question": "What is the last transcript release date?",
     "gold_sql": "SELECT transcript_date FROM Transcripts ORDER BY transcript_date DESC LIMIT 1",
-    "schema_id": "ec72afd4-babc-4f75-883a-bb7eb3f26aae",
+    "schema_id": "d90e2ece-86f3-4b7b-b2a3-10e6e29010e6",
     "db_id": "student_transcripts_tracking",
     "dialect": "postgres"
   },
@@ -163,7 +155,7 @@
     "question_id": "spider_dev_021",
     "question": "What are all the song names by singers who are older than average?",
     "gold_sql": "SELECT song_name FROM singer WHERE age  >  (SELECT avg(age) FROM singer)",
-    "schema_id": "3285045a-8a55-4b67-bf01-57d8eebe93aa",
+    "schema_id": "8adbd748-13a9-4f92-8171-590c1faa19e7",
     "db_id": "concert_singer",
     "dialect": "postgres"
   },
@@ -171,7 +163,7 @@
     "question_id": "spider_dev_022",
     "question": "Count the number of templates of the type CV.",
     "gold_sql": "SELECT count(*) FROM Templates WHERE template_type_code  =  \"CV\"",
-    "schema_id": "bd60b77e-e0c4-4acc-a6ee-7c5363fe26c4",
+    "schema_id": "0d879b7b-671b-488e-ad44-1c30800f1f77",
     "db_id": "cre_Doc_Template_Mgt",
     "dialect": "postgres"
   },
@@ -179,7 +171,7 @@
     "question_id": "spider_dev_023",
     "question": "What are the names and grades for each high schooler?",
     "gold_sql": "SELECT name ,  grade FROM Highschooler",
-    "schema_id": "bb61470c-470d-40bc-a235-905f340b3b82",
+    "schema_id": "28df89a6-720b-4a2b-b862-fe432c4daf4a",
     "db_id": "network_1",
     "dialect": "postgres"
   },
@@ -187,7 +179,7 @@
     "question_id": "spider_dev_024",
     "question": "What are the number of votes from state 'NY' or 'CA'?",
     "gold_sql": "SELECT count(*) FROM votes WHERE state  =  'NY' OR state  =  'CA'",
-    "schema_id": "1174e00f-c2ea-49f9-a1b6-729bbeeab11b",
+    "schema_id": "2dd47e1b-28f2-4ff8-9efb-244076a857e2",
     "db_id": "voter_1",
     "dialect": "postgres"
   },
@@ -195,7 +187,7 @@
     "question_id": "spider_dev_025",
     "question": "Count the number of templates.",
     "gold_sql": "SELECT count(*) FROM Templates",
-    "schema_id": "bd60b77e-e0c4-4acc-a6ee-7c5363fe26c4",
+    "schema_id": "0d879b7b-671b-488e-ad44-1c30800f1f77",
     "db_id": "cre_Doc_Template_Mgt",
     "dialect": "postgres"
   },
@@ -203,7 +195,7 @@
     "question_id": "spider_dev_026",
     "question": "What is the best rank of losers across all matches?",
     "gold_sql": "SELECT min(loser_rank) FROM matches",
-    "schema_id": "6d172af5-4dfe-41bf-b271-42a7264bf9bf",
+    "schema_id": "634c6177-bc4d-4596-9c6d-a2e011953ed4",
     "db_id": "wta_1",
     "dialect": "postgres"
   }
