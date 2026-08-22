@@ -220,3 +220,7 @@ chroma/
 
 # Other
 .DS_Store
+
+# Results
+eval/
+feedback.db
