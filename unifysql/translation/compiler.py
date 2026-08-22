@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 import sqlglot
@@ -9,14 +10,28 @@ from unifysql.semantic.models import CompilerResult, ValidationResult
 # Instantiate logger
 logger = get_logger()
 
+_FENCE_RE = re.compile(r"^```(?:sql)?\s*\n?(.*?)\n?```\s*$", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_markdown_fences(sql: str) -> str:
+    """Strips leading/trailing markdown code fences from LLM SQL output."""
+    match = _FENCE_RE.match(sql.strip())
+    return match.group(1).strip() if match else sql.strip()
+
 
 class Compiler:
 
     def compile(self, sql: str, dialect: str, preview: bool) -> CompilerResult:
         """Transpiles raw SQL to the target dialect using SQLGlot."""
 
+        # Strip markdown fences that LLMs occasionally emit
+        sql = _strip_markdown_fences(sql)
+
         # Update query if preview is True
         sql = sql.strip().rstrip(";")
+        sql = re.sub(
+            r"\s+LIMIT\s+\d+\s*$", "", sql, flags=re.IGNORECASE
+        ).strip()  # avoid double LIMIT
         if preview:
             sql = f"{sql} LIMIT {settings.preview_default_limit}"
 
