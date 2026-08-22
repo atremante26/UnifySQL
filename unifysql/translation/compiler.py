@@ -27,12 +27,11 @@ class Compiler:
         # Strip markdown fences that LLMs occasionally emit
         sql = _strip_markdown_fences(sql)
 
-        # Update query if preview is True
         sql = sql.strip().rstrip(";")
-        sql = re.sub(
-            r"\s+LIMIT\s+\d+\s*$", "", sql, flags=re.IGNORECASE
-        ).strip()  # avoid double LIMIT
         if preview:
+            sql = re.sub(
+                r"\s+LIMIT\s+\d+\s*$", "", sql, flags=re.IGNORECASE
+            ).strip()
             sql = f"{sql} LIMIT {settings.preview_default_limit}"
 
         # Initialize return values
