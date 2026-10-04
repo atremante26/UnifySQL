@@ -37,22 +37,31 @@ load_dotenv()
 logger = get_logger()
 
 # Spider Golden Evaluation
-SPIDER_CONNECTION_STRINGS = {
-    "battle_death": "postgresql://postgres:postgres@localhost:5433/spider_battle_death",
-    "concert_singer": "postgresql://postgres:postgres@localhost:5433/spider_concert_singer",
-    "course_teach": "postgresql://postgres:postgres@localhost:5433/spider_course_teach",
-    "cre_Doc_Template_Mgt": "postgresql://postgres:postgres@localhost:5433/spider_cre_doc_template_mgt",
-    "dog_kennels": "postgresql://postgres:postgres@localhost:5433/spider_dog_kennels",
-    "employee_hire_evaluation": "postgresql://postgres:postgres@localhost:5433/spider_employee_hire_evaluation",
-    "flight_2": "postgresql://postgres:postgres@localhost:5433/spider_flight_2",
-    "network_1": "postgresql://postgres:postgres@localhost:5433/spider_network_1",
-    "orchestra": "postgresql://postgres:postgres@localhost:5433/spider_orchestra",
-    "pets_1": "postgresql://postgres:postgres@localhost:5433/spider_pets_1",
-    "singer": "postgresql://postgres:postgres@localhost:5433/spider_singer",
-    "student_transcripts_tracking": "postgresql://postgres:postgres@localhost:5433/spider_student_transcripts_tracking",
-    "voter_1": "postgresql://postgres:postgres@localhost:5433/spider_voter_1",
-    "wta_1": "postgresql://postgres:postgres@localhost:5433/spider_wta_1",
-}
+SPIDER_SCHEMA_IDS_PATH = "benchmarks/spider/schema_ids.json"
+
+# Error prefix marking questions whose gold SQL Postgres rejects (e.g. Spider's
+# SQLite-style loose GROUP BY). These are benchmark defects, not model failures,
+# and are excluded from the EX denominator in run_eval.
+GOLD_SQL_INVALID = "gold_sql_invalid_for_postgres"
+
+
+def _spider_connection_string(db_id: str) -> str:
+    """
+    Connection string for a Spider database loaded by load_spider.sh
+    (databases are named `spider_<db_id>` lowercased, on host port 5433).
+    """
+    return f"postgresql://postgres:postgres@localhost:5433/spider_{db_id.lower()}"
+
+
+def _load_spider_schema_ids() -> Dict[str, str]:
+    """
+    Loads the `db_id` -> `schema_id` mapping written by
+    `benchmarks/spider/scripts/register_and_populate.py`.
+    """
+    if not os.path.exists(SPIDER_SCHEMA_IDS_PATH):
+        return {}
+    with open(SPIDER_SCHEMA_IDS_PATH, "r") as f:
+        return json.load(f)
 
 
 def _hash_result_set(result_set: Dict[str, List[Any]]) -> str:
@@ -155,23 +164,36 @@ async def run_single(
             # Compute EX
             ex = False
             result_hash = None
-            if (
-                execute
-                and generated_validated.valid
-                and entry.db_id in SPIDER_CONNECTION_STRINGS
-            ):
-                conn_str = SPIDER_CONNECTION_STRINGS[entry.db_id]
+            error = None
+            if execute and generated_validated.valid:
+                conn_str = _spider_connection_string(entry.db_id)
                 executor = PostgresExecutor(connection_string=conn_str)
-                gen_result = await executor.execute(generated_compiled.sql)
-                gold_result = await executor.execute(
-                    _normalize_gold_sql(entry.gold_sql)
-                )
 
-                # Hash result sets and compare
-                gen_hash = _hash_result_set(result_set=gen_result.result_set)
-                gold_hash = _hash_result_set(result_set=gold_result.result_set)
-                ex = gen_hash == gold_hash
-                result_hash = gen_hash
+                # Execute gold first: if Postgres rejects it the question is
+                # unwinnable, regardless of what the model generated.
+                try:
+                    gold_result = await executor.execute(
+                        _normalize_gold_sql(entry.gold_sql)
+                    )
+                except Exception as e:
+                    gold_result = None
+                    error = f"{GOLD_SQL_INVALID}: {e}"
+
+                if gold_result is not None:
+                    try:
+                        gen_result = await executor.execute(generated_compiled.sql)
+                    except Exception as e:
+                        # Generated SQL failing to execute is a model failure:
+                        # keep ex=False and record why.
+                        gen_result = None
+                        error = f"generated SQL execution failed: {e}"
+
+                    if gen_result is not None:
+                        # Hash result sets and compare
+                        gen_hash = _hash_result_set(result_set=gen_result.result_set)
+                        gold_hash = _hash_result_set(result_set=gold_result.result_set)
+                        ex = gen_hash == gold_hash
+                        result_hash = gen_hash
 
         logger.info(
             "eval_single_completed",
@@ -190,7 +212,7 @@ async def run_single(
             em=em,
             latency_ms=span.latency_ms,
             token_count=0,  # TODO: aggregate token count across pipeline stages
-            error=None,
+            error=error,
             run_id=run_id,
         )
 
@@ -247,8 +269,14 @@ async def run_eval(
     with open(output_path, "w") as f:
         json.dump([r.model_dump(mode="json") for r in results], f, indent=2)
 
-    # Print summary
-    ex_score = sum(r.ex for r in results) / len(results) if results else 0.0
+    # Print summary. Questions whose gold SQL cannot execute on Postgres are
+    # excluded from the EX denominator (unwinnable); EM needs no execution,
+    # so it keeps the full denominator.
+    ex_scorable = [
+        r for r in results if not (r.error and r.error.startswith(GOLD_SQL_INVALID))
+    ]
+    n_gold_invalid = len(results) - len(ex_scorable)
+    ex_score = sum(r.ex for r in ex_scorable) / len(ex_scorable) if ex_scorable else 0.0
     em_score = sum(r.em for r in results) / len(results) if results else 0.0
     latencies = [r.latency_ms for r in results]
     p50 = sorted(latencies)[len(latencies) // 2] if latencies else 0.0
@@ -258,6 +286,7 @@ async def run_eval(
         "eval_completed",
         run_id=run_id,
         n_questions=len(results),
+        n_gold_invalid=n_gold_invalid,
         ex=ex_score,
         em=em_score,
         p50_ms=p50,
@@ -266,6 +295,11 @@ async def run_eval(
 
     click.echo(f"\nEval Results — run_id: {run_id}")
     click.echo(f"  EX:  {ex_score:.1%}")
+    if n_gold_invalid:
+        click.echo(
+            f"       ({n_gold_invalid} question(s) excluded: "
+            "gold SQL not executable on Postgres)"
+        )
     click.echo(f"  EM:  {em_score:.1%}")
     click.echo(f"  p50: {p50:.0f}ms")
     click.echo(f"  p95: {p95:.0f}ms")
@@ -309,6 +343,7 @@ def eval_cmd(
     if dataset == "golden":
         entries = load_golden_set()
     else:
+        schema_ids = _load_spider_schema_ids()
         with open("benchmarks/spider/train_spider.json", "r") as f:
             spider = json.load(f)
         entries = [
@@ -316,11 +351,20 @@ def eval_cmd(
                 question_id=f"spider_train_{str(i).zfill(5)}",
                 question=e["question"],
                 gold_sql=e["query"],
+                schema_id=schema_ids.get(e["db_id"]),
                 db_id=e["db_id"],
                 dialect="postgres",
             )
             for i, e in enumerate(spider[:n], 1)
         ]
+        unregistered = sorted({e.db_id for e in entries if e.schema_id is None})
+        if unregistered:
+            click.echo(
+                f"WARNING: {len(unregistered)} database(s) missing from "
+                f"{SPIDER_SCHEMA_IDS_PATH}; their questions will be skipped: "
+                f"{', '.join(unregistered)}. "
+                "Run benchmarks/spider/scripts/register_and_populate.py first."
+            )
 
     results = asyncio.run(
         run_eval(
