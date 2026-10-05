@@ -44,6 +44,16 @@ SPIDER_SCHEMA_IDS_PATH = "benchmarks/spider/schema_ids.json"
 # and are excluded from the EX denominator in run_eval.
 GOLD_SQL_INVALID = "gold_sql_invalid_for_postgres"
 
+# Error prefix marking questions skipped because their database has no
+# registered schema (e.g. excluded databases like car_1). Nothing ran, so
+# run_eval excludes them from both the EX and EM denominators.
+SKIPPED_NO_SCHEMA = "skipped_no_schema_id"
+
+SPIDER_QUESTION_FILES = {
+    "spider": ("benchmarks/spider/train_spider.json", "spider_train"),
+    "dev": ("benchmarks/spider/dev.json", "spider_dev"),
+}
+
 
 def _spider_connection_string(db_id: str) -> str:
     """
@@ -112,7 +122,7 @@ async def run_single(
             em=False,
             latency_ms=0.0,
             token_count=0,
-            error="schema_id is None — run POST /schemas first",
+            error=f"{SKIPPED_NO_SCHEMA}: run register_and_populate.py first",
             run_id=run_id,
         )
 
@@ -269,16 +279,21 @@ async def run_eval(
     with open(output_path, "w") as f:
         json.dump([r.model_dump(mode="json") for r in results], f, indent=2)
 
-    # Print summary. Questions whose gold SQL cannot execute on Postgres are
-    # excluded from the EX denominator (unwinnable); EM needs no execution,
-    # so it keeps the full denominator.
-    ex_scorable = [
-        r for r in results if not (r.error and r.error.startswith(GOLD_SQL_INVALID))
+    # Print summary. Questions skipped for a missing schema never ran, so they
+    # leave both denominators; questions whose gold SQL cannot execute on
+    # Postgres are excluded from the EX denominator only (unwinnable), since
+    # EM needs no execution.
+    ran = [
+        r for r in results if not (r.error and r.error.startswith(SKIPPED_NO_SCHEMA))
     ]
-    n_gold_invalid = len(results) - len(ex_scorable)
+    n_skipped = len(results) - len(ran)
+    ex_scorable = [
+        r for r in ran if not (r.error and r.error.startswith(GOLD_SQL_INVALID))
+    ]
+    n_gold_invalid = len(ran) - len(ex_scorable)
     ex_score = sum(r.ex for r in ex_scorable) / len(ex_scorable) if ex_scorable else 0.0
-    em_score = sum(r.em for r in results) / len(results) if results else 0.0
-    latencies = [r.latency_ms for r in results]
+    em_score = sum(r.em for r in ran) / len(ran) if ran else 0.0
+    latencies = [r.latency_ms for r in ran]
     p50 = sorted(latencies)[len(latencies) // 2] if latencies else 0.0
     p95 = sorted(latencies)[int(len(latencies) * 0.95)] if latencies else 0.0
 
@@ -286,6 +301,7 @@ async def run_eval(
         "eval_completed",
         run_id=run_id,
         n_questions=len(results),
+        n_skipped_no_schema=n_skipped,
         n_gold_invalid=n_gold_invalid,
         ex=ex_score,
         em=em_score,
@@ -300,6 +316,10 @@ async def run_eval(
             f"       ({n_gold_invalid} question(s) excluded: "
             "gold SQL not executable on Postgres)"
         )
+    if n_skipped:
+        click.echo(
+            f"       ({n_skipped} question(s) skipped: database not registered)"
+        )
     click.echo(f"  EM:  {em_score:.1%}")
     click.echo(f"  p50: {p50:.0f}ms")
     click.echo(f"  p95: {p95:.0f}ms")
@@ -311,14 +331,22 @@ async def run_eval(
 @click.command()
 @click.option(
     "--dataset",
-    type=click.Choice(["spider", "golden"]),
+    type=click.Choice(["spider", "dev", "golden"]),
     required=True,
-    help="Dataset to evaluate against.",
+    help="Dataset to evaluate against: Spider train split, Spider dev split, "
+    "or the curated golden set.",
 )
 @click.option(
     "--n",
     default=100,
-    help="Number of questions to evaluate (spider only).",
+    help="Number of questions to evaluate (spider/dev only; 0 = all).",
+)
+@click.option(
+    "--db",
+    "dbs",
+    multiple=True,
+    default=(),
+    help="Restrict to these db_ids (repeatable).",
 )
 @click.option(
     "--model",
@@ -337,25 +365,33 @@ async def run_eval(
     help="Path to previous run JSON for regression comparison.",
 )
 def eval_cmd(
-    dataset: str, n: int, model: Optional[str], execute: bool, compare: Optional[str]
+    dataset: str,
+    n: int,
+    dbs: tuple,
+    model: Optional[str],
+    execute: bool,
+    compare: Optional[str],
 ) -> None:
     """Run UnifySQL evaluation against golden set or Spider dataset."""
     if dataset == "golden":
         entries = load_golden_set()
     else:
         schema_ids = _load_spider_schema_ids()
-        with open("benchmarks/spider/train_spider.json", "r") as f:
+        question_file, id_prefix = SPIDER_QUESTION_FILES[dataset]
+        with open(question_file, "r") as f:
             spider = json.load(f)
+        if n:
+            spider = spider[:n]
         entries = [
             GoldenEntry(
-                question_id=f"spider_train_{str(i).zfill(5)}",
+                question_id=f"{id_prefix}_{str(i).zfill(5)}",
                 question=e["question"],
                 gold_sql=e["query"],
                 schema_id=schema_ids.get(e["db_id"]),
                 db_id=e["db_id"],
                 dialect="postgres",
             )
-            for i, e in enumerate(spider[:n], 1)
+            for i, e in enumerate(spider, 1)
         ]
         unregistered = sorted({e.db_id for e in entries if e.schema_id is None})
         if unregistered:
@@ -365,6 +401,10 @@ def eval_cmd(
                 f"{', '.join(unregistered)}. "
                 "Run benchmarks/spider/scripts/register_and_populate.py first."
             )
+
+    if dbs:
+        entries = [e for e in entries if e.db_id in dbs]
+        click.echo(f"Filtered to {len(entries)} question(s) from: {', '.join(dbs)}")
 
     results = asyncio.run(
         run_eval(
